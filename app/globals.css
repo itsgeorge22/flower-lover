@@ -1,0 +1,39 @@
+@font-face {
+  font-family: "Rubik";
+  src: url("/fonts/rubik-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Rubik";
+  src: url("/fonts/rubik-medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+  font-family: "Rubik", sans-serif;
+  background: #faf8f9;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #faf8f9;
+}
+
+button {
+  font: inherit;
+}
