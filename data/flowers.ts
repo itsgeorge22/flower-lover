@@ -11,8 +11,6 @@ export const flowers = [
     latinName: "Paeonia",
     description:
       "Пышный и нежный цветок с приятным ароматом. Символ романтики и благополучия",
-    image: "/images/flowers/peony.jpg",
-    imageAlt: "Нежный розовый пион крупным планом",
   },
   {
     id: "rose",
