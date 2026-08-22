@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Check, RefreshCw, Share2, X } from "lucide-react";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Flower } from "../types/flower";
 import styles from "./FlowerRatingScreen.module.css";
 
@@ -237,7 +237,7 @@ function CompletionCard() {
       </div>
       <div className={styles.completionCopy}>
         <h1 className={styles.completionTitle}>Все цветы оценены</h1>
-        <p className={styles.completionDescription}>Сейчас соберём твои ответы в один список</p>
+        <p className={styles.completionDescription}>Собираем твои ответы в один список</p>
       </div>
     </article>
   );
@@ -398,6 +398,7 @@ function ResultsView({
 }
 
 export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
+  const selectionLockedRef = useRef(false);
   const [currentFlowerIndex, setCurrentFlowerIndex] = useState(0);
   const [selectedRating, setSelectedRating] = useState<Answer | null>(null);
   const [reactionKey, setReactionKey] = useState(0);
@@ -460,6 +461,7 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
 
     const transitionTimer = window.setTimeout(() => {
       if (hasNextFlower) {
+        selectionLockedRef.current = false;
         setSelectedRating(null);
         setIsTransitioning(false);
         setCurrentFlowerIndex(nextFlowerIndex);
@@ -483,6 +485,7 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
         setShowResults(true);
       } else {
         window.localStorage.removeItem(STORAGE_KEY);
+        selectionLockedRef.current = false;
         setAnswers({});
         setCurrentFlowerIndex(0);
         setSelectedRating(null);
@@ -509,20 +512,22 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   };
 
   const handleRatingSelect = (rating: Rating) => {
-    if (isTransitioning) {
+    if (selectionLockedRef.current || selectedRating !== null || isTransitioning) {
       return;
     }
 
+    selectionLockedRef.current = true;
     saveAnswer(rating);
     setSelectedRating(rating);
     setReactionKey((currentKey) => currentKey + 1);
   };
 
   const handleSkip = () => {
-    if (isTransitioning) {
+    if (selectionLockedRef.current || selectedRating !== null || isTransitioning) {
       return;
     }
 
+    selectionLockedRef.current = true;
     saveAnswer("skipped");
     setSelectedRating("skipped");
     setReactionKey((currentKey) => currentKey + 1);
@@ -592,7 +597,7 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
             selected={selectedRating}
             onSelect={handleRatingSelect}
             onSkip={handleSkip}
-            disabled={isTransitioning}
+            disabled={selectedRating !== null || isTransitioning}
             finishing={isTransitioning && !nextFlower}
           />
           {isTransitioning && !nextFlower && (
