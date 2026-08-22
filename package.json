@@ -2,16 +2,23 @@
   "name": "flower-lover",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "generate:flowers": "node --env-file=.env.local scripts/generate-flowers.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.33.0",
     "next": "16.3.2",
+    "openai": "^7.5.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
