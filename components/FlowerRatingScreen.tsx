@@ -553,6 +553,12 @@ function RatingButton({
     setEmojiAnimating(true);
   };
 
+  useEffect(() => {
+    if (disabled) {
+      setEmojiAnimating(false);
+    }
+  }, [disabled]);
+
   return (
     <button
       type="button"
@@ -560,7 +566,7 @@ function RatingButton({
       aria-pressed={selected}
       disabled={disabled}
       onPointerEnter={(event) => {
-        if (event.pointerType === "mouse" && event.buttons === 0) {
+        if (!disabled && event.pointerType === "mouse" && event.buttons === 0) {
           startEmojiAnimation();
         }
       }}

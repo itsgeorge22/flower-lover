@@ -1129,6 +1129,7 @@
 
 .ratingButton:disabled {
   cursor: default;
+  pointer-events: none;
 }
 
 .ratingButton:focus-visible,
