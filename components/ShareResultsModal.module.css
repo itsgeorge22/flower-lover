@@ -19,7 +19,7 @@
   max-height: calc(100dvh - 32px);
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 20px;
   overflow: auto;
   border-radius: 28px;
@@ -160,7 +160,6 @@
 
 @media (max-height: 680px) {
   .modal {
-    gap: 14px;
     padding: 16px;
   }
 

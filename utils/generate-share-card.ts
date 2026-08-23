@@ -229,8 +229,6 @@ export async function generateFlowerShareCard(
     like: flowers.filter((flower) => answers[flower.id] === "like").length,
     neutral: flowers.filter((flower) => answers[flower.id] === "neutral").length,
     dislike: flowers.filter((flower) => answers[flower.id] === "dislike").length,
-    skipped: flowers.filter((flower) => !answers[flower.id] || answers[flower.id] === "skipped")
-      .length,
   };
   const ratedFlowers = flowers.filter((flower) => answers[flower.id] !== "skipped");
   const likedFlowers = flowers.filter((flower) => answers[flower.id] === "like");
@@ -269,8 +267,11 @@ export async function generateFlowerShareCard(
   context.fillRect(0, 920, 440, 430);
 
   context.fillStyle = "#ff4080";
+  context.font = '24px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+  context.fillText("🌸", PAGE_PADDING, 78);
+  const logoEmojiWidth = context.measureText("🌸").width;
   context.font = '500 24px Rubik, sans-serif';
-  context.fillText("FlowerLover  🌸", PAGE_PADDING, 78);
+  context.fillText("FlowerLover", PAGE_PADDING + logoEmojiWidth + 4, 78);
 
   context.fillStyle = "#171216";
   context.font = '500 50px Rubik, sans-serif';
@@ -357,8 +358,7 @@ export async function generateFlowerShareCard(
 
   context.fillStyle = "#9e929c";
   context.font = '400 19px Rubik, sans-serif';
-  const skippedNote = counts.skipped > 0 ? ` · пропущено ${counts.skipped}` : "";
-  context.fillText(`Создано в FlowerLover${skippedNote}`, CARD_WIDTH / 2, 1274);
+  context.fillText("Создано в FlowerLover", CARD_WIDTH / 2, 1274);
   context.textAlign = "left";
 
   return canvasToBlob(canvas);
