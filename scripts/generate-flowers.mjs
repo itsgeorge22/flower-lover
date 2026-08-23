@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { flowers } from "../data/flowers.ts";
 
 const MODEL = "gpt-image-2";
-const SIZE = "1024x1536";
+const SIZE = "1024x768";
 const QUALITY = "medium";
 const MAX_RETRIES = 3;
 const WEBP_QUALITY = 88;
@@ -28,9 +28,9 @@ export function createPrompt(flower) {
   return `
 Create a photorealistic premium botanical studio photograph of a living ${flower.name} (${flower.latinName}).
 
-The flower must look vivid, fresh, beautiful, natural, and botanically recognizable. Make the flower the clear primary subject and let it occupy most of the frame. The most important part of the flower — its bud, flower head, or main inflorescence — must be precisely centered in the image. Show enough of its natural structure and defining botanical features for the species to be immediately recognizable. If this flower naturally grows as a cluster, spike, branch, or compound inflorescence rather than a single flower head, show that characteristic natural form instead of forcing it into a single bloom.
+The flower must look vivid, fresh, beautiful, natural, and botanically recognizable. Make the flower the clear primary subject, contained within the central 70% of the image width. Reserve approximately 15% of the image width on both the left and right sides as clean, uncluttered breathing room showing only the warm neutral background. Do not let petals, stems, or leaves touch the side edges or enter these clear side margins. The most important part of the flower — its bud, flower head, or main inflorescence — must be precisely centered in the image. Show enough of its natural structure and defining botanical features for the species to be immediately recognizable. If this flower naturally grows as a cluster, spike, branch, or compound inflorescence rather than a single flower head, show that characteristic natural form instead of forcing it into a single bloom.
 
-Use soft diffused daylight, a light warm neutral studio background, subtle depth of field, realistic petal texture, natural color variation, and a clean premium editorial aesthetic. Use a vertical composition with consistent close framing suitable for a mobile flower-rating card. A small amount of natural stem or leaves may be visible when it helps identification, but the centered flower head or primary inflorescence must remain dominant.
+Use soft diffused daylight, a light warm neutral studio background, subtle depth of field, realistic petal texture, natural color variation, and a clean premium editorial aesthetic. Compose the final image in an exact horizontal 4:3 aspect ratio with consistent close framing across the full series. Keep the flower's key botanical structure inside the central safe area so it remains recognizable when displayed with center cropping in a mobile flower-rating card. A small amount of natural stem or leaves may be visible when it helps identification, but the centered flower head or primary inflorescence must remain dominant.
 
 No vase, no bouquet, no wrapping, no hands, no people, no text, no labels, no decorative objects, no artificial props, no CGI, no illustration, no painting, and no synthetic-looking surfaces. The final result must look like a real professional botanical photograph.
   `.trim();
