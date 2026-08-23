@@ -30,6 +30,7 @@ type FlowerImageModalDetails = {
   src: string;
   alt: string;
   flowerName: string;
+  latinName: string;
   origin: {
     top: number;
     left: number;
@@ -369,6 +370,10 @@ function FlowerImageModal({
           sizes="(max-width: 1280px) calc(100vw - 32px), 1280px"
           priority
         />
+        <div className={styles.flowerImageModalCaption}>
+          <strong>{details.flowerName}</strong>
+          <span>{details.latinName}</span>
+        </div>
         <button
           ref={closeButtonRef}
           type="button"
@@ -443,6 +448,7 @@ function FlowerCard({
                 src: flower.image,
                 alt: flower.imageAlt ?? flower.name,
                 flowerName: flower.name,
+                latinName: flower.latinName,
                 origin: {
                   top: origin.top,
                   left: origin.left,
