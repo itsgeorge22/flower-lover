@@ -859,18 +859,11 @@ function ResultsView({
                 const buttonBounds = button.getBoundingClientRect();
                 const filtersCenter = filtersBounds.left + filtersBounds.width / 2;
                 const buttonCenter = buttonBounds.left + buttonBounds.width / 2;
+                const distanceToCenter = buttonCenter - filtersCenter;
 
-                if (buttonCenter > filtersCenter) {
+                if (Math.abs(distanceToCenter) > 1) {
                   filters.scrollTo({
-                    left: filters.scrollLeft + buttonCenter - filtersCenter,
-                    behavior: "smooth",
-                  });
-                } else if (
-                  buttonBounds.left < filtersBounds.left &&
-                  filters.scrollLeft > 1
-                ) {
-                  filters.scrollTo({
-                    left: 0,
+                    left: filters.scrollLeft + distanceToCenter,
                     behavior: "smooth",
                   });
                 }
