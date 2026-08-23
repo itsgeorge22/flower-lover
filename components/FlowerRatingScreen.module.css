@@ -1475,8 +1475,7 @@
 
 @media (hover: hover) {
   .resultsFilterButton:hover:not(.resultsFilterButtonActive) {
-    border-color: rgba(255, 64, 128, 0.4);
-    color: #ff4080;
+    background: #fdecf1;
   }
 }
 
@@ -1644,6 +1643,9 @@
 }
 
 .shareButton {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1655,11 +1657,7 @@
   font-size: 14px;
   font-weight: 500;
   line-height: 20px;
-  transition:
-    color 140ms ease,
-    background-color 140ms ease,
-    filter 140ms ease,
-    transform 140ms ease;
+  transition: transform 140ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1676,26 +1674,34 @@
   box-shadow: none;
 }
 
-@media (hover: hover) {
-  .shareButton:hover {
-    filter: brightness(0.95) saturate(1.04);
-  }
+.shareButton::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: rgba(23, 18, 22, 0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
 
-  .restartButton:hover {
-    color: #171216;
-    background: #f0ecef;
-    filter: none;
+.shareButton > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (hover: hover) {
+  .shareButton:hover::before {
+    opacity: 0.3;
   }
 }
 
 .shareButton:active {
   transform: scale(0.98);
-  filter: brightness(0.92) saturate(1.04);
 }
 
-.restartButton:active {
-  background: #e9e3e7;
-  filter: none;
+.shareButton:active::before {
+  opacity: 0.55;
 }
 
 .shareButtonIcon {
