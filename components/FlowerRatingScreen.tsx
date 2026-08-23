@@ -690,7 +690,6 @@ function ResultsView({
       startScrollLeft: event.currentTarget.scrollLeft,
     };
     suppressFilterClickRef.current = false;
-    event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handleFilterPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -703,12 +702,15 @@ function ResultsView({
     const dragDistance = event.clientX - drag.startX;
 
     if (Math.abs(dragDistance) > 4) {
+      if (!suppressFilterClickRef.current) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+
       suppressFilterClickRef.current = true;
       setFiltersDragging(true);
       event.preventDefault();
+      event.currentTarget.scrollLeft = drag.startScrollLeft - dragDistance;
     }
-
-    event.currentTarget.scrollLeft = drag.startScrollLeft - dragDistance;
   };
 
   const finishFilterDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
