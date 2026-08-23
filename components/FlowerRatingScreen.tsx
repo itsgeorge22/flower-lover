@@ -5,7 +5,6 @@ import { Check, ChevronLeft, ChevronRight, RefreshCw, Share2, X } from "lucide-r
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -32,12 +31,6 @@ type FlowerImageModalDetails = {
   alt: string;
   flowerName: string;
   latinName: string;
-  origin: {
-    top: number;
-    left: number;
-    width: number;
-    height: number;
-  };
 };
 
 const STORAGE_KEY = "flower-lover-answers";
@@ -258,34 +251,9 @@ function FlowerImageModal({
   details: FlowerImageModalDetails;
   onClose: () => void;
 }) {
-  const modalRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [isClosing, setIsClosing] = useState(false);
-  const [motionReady, setMotionReady] = useState(false);
-  const [motionStyle, setMotionStyle] = useState<CSSProperties>();
   const requestClose = useCallback(() => setIsClosing(true), []);
-
-  useLayoutEffect(() => {
-    const modal = modalRef.current;
-
-    if (!modal) {
-      return;
-    }
-
-    const target = modal.getBoundingClientRect();
-    const originCenterX = details.origin.left + details.origin.width / 2;
-    const originCenterY = details.origin.top + details.origin.height / 2;
-    const targetCenterX = target.left + target.width / 2;
-    const targetCenterY = target.top + target.height / 2;
-
-    setMotionStyle({
-      "--image-modal-from-x": `${originCenterX - targetCenterX}px`,
-      "--image-modal-from-y": `${originCenterY - targetCenterY}px`,
-      "--image-modal-from-scale-x": details.origin.width / target.width,
-      "--image-modal-from-scale-y": details.origin.height / target.height,
-    } as CSSProperties);
-    setMotionReady(true);
-  }, [details.origin]);
 
   useEffect(() => {
     const previouslyFocused =
@@ -327,11 +295,7 @@ function FlowerImageModal({
       }}
     >
       <section
-        ref={modalRef}
-        style={motionStyle}
         className={`${styles.flowerImageModal} ${
-          motionReady ? styles.flowerImageModalReady : ""
-        } ${
           isClosing ? styles.flowerImageModalClosing : ""
         }`}
         role="dialog"
@@ -421,21 +385,13 @@ function FlowerCard({
           className={styles.imageOpenButton}
           aria-label={`Открыть фотографию цветка ${flower.name}`}
           disabled={hidden || Boolean(reaction) || !flower.image || !onImageOpen}
-          onClick={(event) => {
+          onClick={() => {
             if (flower.image) {
-              const origin = event.currentTarget.getBoundingClientRect();
-
               onImageOpen?.({
                 src: flower.image,
                 alt: flower.imageAlt ?? flower.name,
                 flowerName: flower.name,
                 latinName: flower.latinName,
-                origin: {
-                  top: origin.top,
-                  left: origin.left,
-                  width: origin.width,
-                  height: origin.height,
-                },
               });
             }
           }}
