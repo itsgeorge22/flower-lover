@@ -540,6 +540,10 @@
 }
 
 .flowerImageModal {
+  --image-modal-from-x: 0px;
+  --image-modal-from-y: 0px;
+  --image-modal-from-scale-x: 1;
+  --image-modal-from-scale-y: 1;
   position: relative;
   width: min(
     calc(100vw - 32px),
@@ -551,16 +555,31 @@
   border-radius: 24px;
   background: #e7e1e6;
   box-shadow: 0 24px 64px rgba(23, 18, 22, 0.28);
-  animation: infoModalIn 320ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  opacity: 0;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.flowerImageModalReady {
+  animation: flowerImageModalIn 480ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
 }
 
 .flowerImageModalClosing {
-  animation: infoModalOut 320ms cubic-bezier(0.7, -0.1, 0.8, 0.1) both;
+  animation: flowerImageModalOut 360ms cubic-bezier(0.55, 0, 0.6, 1) both;
 }
 
 .flowerImageModalPhoto {
   object-fit: cover;
   object-position: center;
+  will-change: transform;
+}
+
+.flowerImageModalReady .flowerImageModalPhoto {
+  animation: flowerImageModalPhotoIn 620ms cubic-bezier(0.2, 0.82, 0.24, 1) both;
+}
+
+.flowerImageModalClosing .flowerImageModalPhoto {
+  animation: flowerImageModalPhotoOut 360ms ease both;
 }
 
 .flowerImageModalClose {
@@ -735,6 +754,66 @@
   to {
     opacity: 0;
     transform: translateY(18px) scale(0.94);
+  }
+}
+
+@keyframes flowerImageModalIn {
+  from {
+    opacity: 0.55;
+    transform: translate3d(
+        var(--image-modal-from-x),
+        var(--image-modal-from-y),
+        0
+      )
+      scale(
+        var(--image-modal-from-scale-x),
+        var(--image-modal-from-scale-y)
+      );
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes flowerImageModalOut {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0.35;
+    transform: translate3d(
+        var(--image-modal-from-x),
+        var(--image-modal-from-y),
+        0
+      )
+      scale(
+        var(--image-modal-from-scale-x),
+        var(--image-modal-from-scale-y)
+      );
+  }
+}
+
+@keyframes flowerImageModalPhotoIn {
+  from {
+    transform: scale(1.06);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes flowerImageModalPhotoOut {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.04);
   }
 }
 
