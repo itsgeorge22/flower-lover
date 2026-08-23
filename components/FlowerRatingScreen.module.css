@@ -1318,7 +1318,7 @@
 .resultsFilters {
   display: flex;
   gap: 8px;
-  padding: 4px 16px 0;
+  padding: 0 16px 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
