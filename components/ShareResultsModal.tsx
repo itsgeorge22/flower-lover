@@ -1,10 +1,11 @@
 "use client";
 
-import { Copy, Download, LoaderCircle, X } from "lucide-react";
+import { Download, LoaderCircle, Send, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./ShareResultsModal.module.css";
 
 type ShareResultsModalProps = {
+  imageBlob: Blob;
   imageUrl: string;
   shareText: string;
   onClose: () => void;
@@ -15,13 +16,14 @@ const CLOSE_DURATION = 220;
 const FILE_NAME = "flower-lover-results.png";
 
 export function ShareResultsModal({
+  imageBlob,
   imageUrl,
   shareText,
   onClose,
   onNotify,
 }: ShareResultsModalProps) {
   const [isClosing, setIsClosing] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
 
@@ -68,20 +70,40 @@ export function ShareResultsModal({
     onNotify("success", "Карточка сохранена");
   };
 
-  const handleCopy = async () => {
-    if (isCopying) {
+  const handleShare = async () => {
+    if (isSharing) {
       return;
     }
 
-    setIsCopying(true);
+    setIsSharing(true);
+    const file = new File([imageBlob], FILE_NAME, { type: "image/png" });
 
     try {
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({
+          title: "Мои цветочные предпочтения",
+          text: shareText,
+          files: [file],
+        });
+        onNotify("success", "Результат отправлен");
+        return;
+      }
+
       await navigator.clipboard.writeText(shareText);
-      onNotify("success", "Список цветов скопирован");
-    } catch {
-      onNotify("error", "Не удалось скопировать список");
+      onNotify("success", "Список скопирован — изображение можно скачать ниже");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(shareText);
+        onNotify("success", "Список скопирован — изображение можно скачать ниже");
+      } catch {
+        onNotify("error", "Не удалось открыть меню отправки");
+      }
     } finally {
-      setIsCopying(false);
+      setIsSharing(false);
     }
   };
 
@@ -133,14 +155,14 @@ export function ShareResultsModal({
           <button
             type="button"
             className={`${styles.actionButton} ${styles.primaryButton}`}
-            disabled={isCopying}
-            onClick={handleCopy}
+            disabled={isSharing}
+            onClick={handleShare}
           >
-            <span>{isCopying ? "Копируем…" : "Скопировать список"}</span>
-            {isCopying ? (
+            <span>{isSharing ? "Открываем…" : "Отправить с любовью"}</span>
+            {isSharing ? (
               <LoaderCircle className={styles.loadingIcon} size={18} aria-hidden="true" />
             ) : (
-              <Copy size={18} aria-hidden="true" />
+              <Send size={18} aria-hidden="true" />
             )}
           </button>
           <button

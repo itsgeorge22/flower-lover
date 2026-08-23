@@ -877,7 +877,7 @@ function ResultsView({
     "Мои цветочные предпочтения:",
     ...flowers.map((flower) => `• ${flower.name} — ${answerLabels[answers[flower.id]]}`),
     "",
-    "© FlowerLover",
+    "Сделано в FlowerLover 🌸",
     "https://flowerlover.fun",
   ].join("\n");
 
@@ -1074,6 +1074,7 @@ function ResultsView({
 
       {shareCard && (
         <ShareResultsModal
+          imageBlob={shareCard.blob}
           imageUrl={shareCard.url}
           shareText={shareText}
           onClose={() => setShareCard(null)}
