@@ -129,11 +129,7 @@ function Progress({
           {current} из {total}
         </span>
         <div
-          className={`${styles.progressTrack} ${
-            current % 2 === 0
-              ? styles.progressTrackBounceEven
-              : styles.progressTrackBounceOdd
-          }`}
+          className={styles.progressTrack}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={total}
