@@ -547,15 +547,29 @@ function RatingButton({
   onSelect: (value: Rating) => void;
   disabled: boolean;
 }) {
+  const [emojiAnimating, setEmojiAnimating] = useState(false);
+
+  const startEmojiAnimation = () => {
+    setEmojiAnimating(true);
+  };
+
   return (
     <button
       type="button"
       className={`${styles.ratingButton} ${styles[option.value]} ${selected ? styles.selected : ""}`}
       aria-pressed={selected}
       disabled={disabled}
+      onPointerEnter={startEmojiAnimation}
+      onFocus={startEmojiAnimation}
       onClick={() => onSelect(option.value)}
     >
-      <span className={styles.emoji} aria-hidden="true">
+      <span
+        className={`${styles.emoji} ${
+          emojiAnimating ? styles.emojiAnimating : ""
+        }`}
+        aria-hidden="true"
+        onAnimationEnd={() => setEmojiAnimating(false)}
+      >
         {option.icon}
       </span>
       <span>{option.label}</span>
