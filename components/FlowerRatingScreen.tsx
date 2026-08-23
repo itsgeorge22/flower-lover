@@ -118,6 +118,15 @@ const reactionParticleSymbols: Record<Rating, readonly string[]> = {
   like: ["♥", "✦", "♥", "·", "♥", "✦", "♥", "·"],
 };
 
+const progressPhrases = [
+  "Начинаем 🌸",
+  "Букет складывается ✨",
+  "Какой чудесный вкус 💐",
+  "Ещё немного красоты 🌷",
+  "Почти готово 🤍",
+  "Цветочное настроение 🌼",
+] as const;
+
 function AnimatedProgressNumber({ value }: { value: number }) {
   const lastValueRef = useRef(value);
   const [transition, setTransition] = useState<{
@@ -195,6 +204,9 @@ function Progress({
   nextDisabled: boolean;
 }) {
   const progress = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
+  const phraseStep = Math.floor((current - 1) / 5);
+  const progressPhrase =
+    (current - 1) % 5 === 0 ? progressPhrases[phraseStep % progressPhrases.length] : null;
 
   return (
     <header className={styles.progressSection}>
@@ -212,6 +224,15 @@ function Progress({
           <AnimatedProgressNumber value={current} />
           <span aria-hidden="true">из {total}</span>
         </span>
+        {progressPhrase && (
+          <span
+            className={styles.progressPhrase}
+            key={`${current}-${progressPhrase}`}
+            aria-hidden="true"
+          >
+            {progressPhrase}
+          </span>
+        )}
         <div
           className={styles.progressTrack}
           role="progressbar"
