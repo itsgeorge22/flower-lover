@@ -1,11 +1,15 @@
 .viewport {
+  --page-noise: url("/images/ui/page-noise.svg");
+
   height: 100dvh;
   min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: #faf8f9;
+  background-color: #faf8f9;
+  background-image: var(--page-noise);
+  background-repeat: repeat;
 }
 
 .screen {
@@ -15,7 +19,9 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  background: #faf8f9;
+  background-color: #faf8f9;
+  background-image: var(--page-noise);
+  background-repeat: repeat;
 }
 
 .surveyPage {
@@ -269,7 +275,9 @@
   padding: 0 8px;
   overflow: hidden;
   color: #554c53;
-  background: #faf8f9;
+  background-color: #faf8f9;
+  background-image: var(--page-noise);
+  background-repeat: repeat;
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
@@ -1425,7 +1433,9 @@
   flex-direction: column;
   padding: 32px 16px 0;
   overflow: hidden;
-  background: #faf8f9;
+  background-color: #faf8f9;
+  background-image: var(--page-noise);
+  background-repeat: repeat;
   animation: resultsPageReveal 480ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
