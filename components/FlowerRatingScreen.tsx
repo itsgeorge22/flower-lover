@@ -73,24 +73,6 @@ const resultFilterOptions: Array<{ value: ResultFilter; label: string }> = [
   { value: "skipped", label: "Пропущено" },
 ];
 
-function getMostFrequent<T extends string>(values: readonly T[]): T | undefined {
-  const counts = new Map<T, number>();
-  let mostFrequent: T | undefined;
-  let highestCount = 0;
-
-  values.forEach((value) => {
-    const nextCount = (counts.get(value) ?? 0) + 1;
-    counts.set(value, nextCount);
-
-    if (nextCount > highestCount) {
-      mostFrequent = value;
-      highestCount = nextCount;
-    }
-  });
-
-  return mostFrequent;
-}
-
 type FlowerRatingScreenProps = {
   flowers: readonly Flower[];
 };
@@ -650,19 +632,6 @@ function ResultsView({
         : flowers.filter((flower) => answers[flower.id] === value).length,
     ]),
   ) as Record<ResultFilter, number>;
-  const ratedCount = flowers.filter(
-    (flower) => answers[flower.id] && answers[flower.id] !== "skipped",
-  ).length;
-  const ratedPercent = flowers.length > 0 ? Math.round((ratedCount / flowers.length) * 100) : 0;
-  const likedFlowers = flowers.filter((flower) => answers[flower.id] === "like");
-  const favoriteRoleId = getMostFrequent(likedFlowers.map((flower) => flower.role));
-  const favoriteSeasonalityId = getMostFrequent(
-    likedFlowers.map((flower) => flower.seasonality),
-  );
-  const favoriteRole = flowerRoles.find((role) => role.id === favoriteRoleId);
-  const favoriteSeasonality = flowerSeasonalities.find(
-    (seasonality) => seasonality.id === favoriteSeasonalityId,
-  );
 
   useEffect(() => {
     if (!toast) {
@@ -721,29 +690,6 @@ function ResultsView({
           Сохрани этот список или поделись им с близкими
         </p>
       </header>
-
-      <div className={styles.resultsStats} aria-label="Итоговая статистика">
-        <div className={styles.resultsStat}>
-          <span className={styles.resultsStatValue}>{ratedPercent}%</span>
-          <span className={styles.resultsStatLabel}>Оценено</span>
-        </div>
-        <div className={styles.resultsStat}>
-          <span className={styles.resultsStatValue} title={favoriteRole?.name}>
-            <span aria-hidden="true">{favoriteRoleId ? roleEmojis[favoriteRoleId] : "—"}</span>
-            {favoriteRole?.name ?? "Нет данных"}
-          </span>
-          <span className={styles.resultsStatLabel}>Любимая роль</span>
-        </div>
-        <div className={styles.resultsStat}>
-          <span className={styles.resultsStatValue} title={favoriteSeasonality?.name}>
-            <span aria-hidden="true">
-              {favoriteSeasonalityId ? seasonalityEmojis[favoriteSeasonalityId] : "—"}
-            </span>
-            {favoriteSeasonality?.name ?? "Нет данных"}
-          </span>
-          <span className={styles.resultsStatLabel}>Любимый сезон</span>
-        </div>
-      </div>
 
       <div className={styles.resultsFilters} aria-label="Фильтры результатов">
         {resultFilterOptions.map((filter) => (
