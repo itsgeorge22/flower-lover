@@ -11,6 +11,7 @@ import {
   type CSSProperties,
 } from "react";
 import { flowerRoles, flowerSeasonalities } from "../data/flower-taxonomy";
+import { flowerLoaderEmojis } from "../data/flower-loader";
 import type { Flower, FlowerRoleId, FlowerSeasonalityId } from "../types/flower";
 import styles from "./FlowerRatingScreen.module.css";
 
@@ -42,8 +43,6 @@ type FlowerImageModalDetails = {
 const STORAGE_KEY = "flower-lover-answers";
 const COMPLETION_LOADER_DURATION = 3300;
 const PAGE_EXIT_DURATION = 420;
-const flowerLoaderEmojis = ["🌸", "🌻", "🌷"];
-
 const roleEmojis: Record<FlowerRoleId, string> = {
   primary: "👑",
   companion: "🤝",
