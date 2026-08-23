@@ -1158,6 +1158,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .results,
+  .resultsList,
   .surveyPage,
   .surveyPageLeaving,
   .resultsPageLeaving {
@@ -1191,6 +1192,88 @@
   line-height: 20px;
 }
 
+.resultsFilters {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 8px;
+  margin-right: -16px;
+  margin-left: -16px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.resultsFilters::-webkit-scrollbar {
+  display: none;
+}
+
+.resultsFilterButton {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #e7e1e6;
+  border-radius: 999px;
+  color: #554c53;
+  background: #ffffff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.resultsFilterCount {
+  min-width: 20px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #9e929c;
+  background: #faf8f9;
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.resultsFilterButtonActive {
+  border-color: #ff4080;
+  color: #ffffff;
+  background: #ff4080;
+}
+
+.resultsFilterButtonActive .resultsFilterCount {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (hover: hover) {
+  .resultsFilterButton:hover:not(.resultsFilterButtonActive) {
+    border-color: rgba(255, 64, 128, 0.4);
+    color: #ff4080;
+  }
+}
+
+.resultsFilterButton:active {
+  transform: scale(0.97);
+}
+
+.resultsFilterButton:focus-visible {
+  outline: 3px solid rgba(255, 64, 128, 0.2);
+  outline-offset: 2px;
+}
+
 .resultsList {
   min-height: 0;
   flex: 1 1 auto;
@@ -1205,12 +1288,33 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  animation: resultsFilterReveal 220ms ease both;
+}
+
+@keyframes resultsFilterReveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .resultsList::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
+}
+
+.resultsEmpty {
+  margin: 24px 0 0;
+  color: #9e929c;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
 }
 
 .resultCard {

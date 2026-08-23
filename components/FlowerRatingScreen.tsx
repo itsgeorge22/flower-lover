@@ -16,6 +16,7 @@ import styles from "./FlowerRatingScreen.module.css";
 
 type Rating = "dislike" | "neutral" | "like";
 type Answer = Rating | "skipped";
+type ResultFilter = "all" | Answer;
 type SavedAnswers = Record<string, Answer>;
 type PageExit = "survey" | "results";
 type TransitionDirection = "forward" | "backward";
@@ -63,6 +64,14 @@ const answerLabels: Record<Answer, string> = {
   like: "Хочу",
   skipped: "Пропущено",
 };
+
+const resultFilterOptions: Array<{ value: ResultFilter; label: string }> = [
+  { value: "all", label: "Все" },
+  { value: "like", label: "Хочу" },
+  { value: "neutral", label: "Иногда" },
+  { value: "dislike", label: "Не хочу" },
+  { value: "skipped", label: "Пропущено" },
+];
 
 type FlowerRatingScreenProps = {
   flowers: readonly Flower[];
@@ -595,6 +604,21 @@ function ResultsView({
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [activeFilter, setActiveFilter] = useState<ResultFilter>("all");
+
+  const filteredFlowers =
+    activeFilter === "all"
+      ? flowers
+      : flowers.filter((flower) => answers[flower.id] === activeFilter);
+
+  const filterCounts = Object.fromEntries(
+    resultFilterOptions.map(({ value }) => [
+      value,
+      value === "all"
+        ? flowers.length
+        : flowers.filter((flower) => answers[flower.id] === value).length,
+    ]),
+  ) as Record<ResultFilter, number>;
 
   useEffect(() => {
     if (!toast) {
@@ -654,8 +678,25 @@ function ResultsView({
         </p>
       </header>
 
-      <div className={styles.resultsList}>
-        {flowers.map((flower) => {
+      <div className={styles.resultsFilters} aria-label="Фильтры результатов">
+        {resultFilterOptions.map((filter) => (
+          <button
+            key={filter.value}
+            type="button"
+            className={`${styles.resultsFilterButton} ${
+              activeFilter === filter.value ? styles.resultsFilterButtonActive : ""
+            }`}
+            aria-pressed={activeFilter === filter.value}
+            onClick={() => setActiveFilter(filter.value)}
+          >
+            <span>{filter.label}</span>
+            <span className={styles.resultsFilterCount}>{filterCounts[filter.value]}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className={styles.resultsList} key={activeFilter}>
+        {filteredFlowers.map((flower) => {
           const answer = answers[flower.id];
           const option = ratingOptions.find((item) => item.value === answer);
 
@@ -695,6 +736,9 @@ function ResultsView({
             </article>
           );
         })}
+        {filteredFlowers.length === 0 && (
+          <p className={styles.resultsEmpty}>В этой категории пока нет цветов</p>
+        )}
       </div>
 
       <div className={styles.resultsFooter}>
