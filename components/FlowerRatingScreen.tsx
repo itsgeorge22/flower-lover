@@ -553,12 +553,6 @@ function RatingButton({
     setEmojiAnimating(true);
   };
 
-  useEffect(() => {
-    if (disabled) {
-      setEmojiAnimating(false);
-    }
-  }, [disabled]);
-
   return (
     <button
       type="button"
