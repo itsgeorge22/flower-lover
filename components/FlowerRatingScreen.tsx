@@ -188,7 +188,7 @@ function Progress({
       <div className={styles.progressContent}>
         <span className={styles.progressLabel} aria-label={`${current} из ${total}`}>
           <AnimatedProgressNumber value={current} />
-          <span aria-hidden="true"> из {total}</span>
+          <span aria-hidden="true">из {total}</span>
         </span>
         <div
           className={styles.progressTrack}
