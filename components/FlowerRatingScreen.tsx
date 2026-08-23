@@ -859,7 +859,7 @@ function ResultsView({
                 const buttonBounds = button.getBoundingClientRect();
                 const filtersCenter = filtersBounds.left + filtersBounds.width / 2;
                 const buttonCenter = buttonBounds.left + buttonBounds.width / 2;
-                const visibleLeftEdge = filtersBounds.left + 16;
+                const visibleLeftEdge = filtersBounds.left;
 
                 if (buttonCenter > filtersCenter) {
                   filters.scrollTo({
