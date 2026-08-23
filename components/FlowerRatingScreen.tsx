@@ -600,7 +600,11 @@ function CompletionCard() {
             style={{ animationDelay: `${500 + index * 900}ms` }}
             key={emoji}
           >
-            {emoji}
+            {index === flowerLoaderEmojis.length - 1 ? (
+              <span className={styles.finalFlowerEmoji}>{emoji}</span>
+            ) : (
+              emoji
+            )}
           </span>
         ))}
       </div>

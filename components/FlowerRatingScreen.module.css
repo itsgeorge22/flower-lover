@@ -95,6 +95,24 @@
   animation-name: flowerEmojiFinal;
 }
 
+.finalFlowerEmoji {
+  display: block;
+  transform-origin: 50% 78%;
+  animation: finalFlowerSway 1.35s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes finalFlowerSway {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(2deg);
+  }
+}
+
 @keyframes flowerEmojiCycle {
   0% {
     opacity: 0;
@@ -956,6 +974,10 @@
   }
 
   .flowerLoaderEmoji {
+    animation: none;
+  }
+
+  .finalFlowerEmoji {
     animation: none;
   }
 
