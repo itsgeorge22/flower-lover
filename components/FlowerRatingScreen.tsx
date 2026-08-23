@@ -876,6 +876,9 @@ function ResultsView({
   const shareText = [
     "Мои цветочные предпочтения:",
     ...flowers.map((flower) => `• ${flower.name} — ${answerLabels[answers[flower.id]]}`),
+    "",
+    "© FlowerLover",
+    "https://flowerlover.fun",
   ].join("\n");
 
   const handleShare = async () => {
@@ -1071,7 +1074,6 @@ function ResultsView({
 
       {shareCard && (
         <ShareResultsModal
-          imageBlob={shareCard.blob}
           imageUrl={shareCard.url}
           shareText={shareText}
           onClose={() => setShareCard(null)}

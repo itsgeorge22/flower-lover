@@ -1,11 +1,10 @@
 "use client";
 
-import { Download, LoaderCircle, Share2, X } from "lucide-react";
+import { Copy, Download, LoaderCircle, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./ShareResultsModal.module.css";
 
 type ShareResultsModalProps = {
-  imageBlob: Blob;
   imageUrl: string;
   shareText: string;
   onClose: () => void;
@@ -16,14 +15,13 @@ const CLOSE_DURATION = 220;
 const FILE_NAME = "flower-lover-results.png";
 
 export function ShareResultsModal({
-  imageBlob,
   imageUrl,
   shareText,
   onClose,
   onNotify,
 }: ShareResultsModalProps) {
   const [isClosing, setIsClosing] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
 
@@ -70,50 +68,20 @@ export function ShareResultsModal({
     onNotify("success", "Карточка сохранена");
   };
 
-  const handleShare = async () => {
-    if (isSharing) {
+  const handleCopy = async () => {
+    if (isCopying) {
       return;
     }
 
-    setIsSharing(true);
-    const file = new File([imageBlob], FILE_NAME, { type: "image/png" });
+    setIsCopying(true);
 
     try {
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({
-          title: "Мои любимые цветы",
-          text: shareText,
-          files: [file],
-        });
-        onNotify("success", "Карточка отправлена");
-        return;
-      }
-
-      if (navigator.clipboard?.write && "ClipboardItem" in window) {
-        await navigator.clipboard.write([
-          new ClipboardItem({
-            "image/png": imageBlob,
-          }),
-        ]);
-        onNotify("success", "Карточка скопирована");
-        return;
-      }
-
-      downloadImage();
-      onNotify("success", "Карточка сохранена — теперь ей можно поделиться");
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-
-      try {
-        downloadImage();
-        onNotify("success", "Карточка сохранена — теперь ей можно поделиться");
-      } catch {
-        onNotify("error", "Не удалось поделиться карточкой");
-      }
+      await navigator.clipboard.writeText(shareText);
+      onNotify("success", "Список цветов скопирован");
+    } catch {
+      onNotify("error", "Не удалось скопировать список");
     } finally {
-      setIsSharing(false);
+      setIsCopying(false);
     }
   };
 
@@ -165,23 +133,23 @@ export function ShareResultsModal({
           <button
             type="button"
             className={`${styles.actionButton} ${styles.primaryButton}`}
-            disabled={isSharing}
-            onClick={handleShare}
+            disabled={isCopying}
+            onClick={handleCopy}
           >
-            {isSharing ? (
+            <span>{isCopying ? "Копируем…" : "Скопировать список"}</span>
+            {isCopying ? (
               <LoaderCircle className={styles.loadingIcon} size={18} aria-hidden="true" />
             ) : (
-              <Share2 size={18} aria-hidden="true" />
+              <Copy size={18} aria-hidden="true" />
             )}
-            <span>{isSharing ? "Открываем…" : "Поделиться"}</span>
           </button>
           <button
             type="button"
             className={`${styles.actionButton} ${styles.secondaryButton}`}
             onClick={handleDownload}
           >
+            <span>Скачать изображение</span>
             <Download size={18} aria-hidden="true" />
-            <span>Скачать</span>
           </button>
         </div>
       </section>
