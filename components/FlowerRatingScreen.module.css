@@ -1316,13 +1316,24 @@
 }
 
 .resultsFilters {
+  --results-filter-start-space: 16px;
+  --results-filter-end-space: 16px;
+
   display: flex;
   gap: 8px;
-  padding: 0 16px 4px;
+  padding: 0 var(--results-filter-end-space) 4px
+    var(--results-filter-start-space);
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  cursor: grab;
+  user-select: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.resultsFiltersDragging,
+.resultsFiltersDragging * {
+  cursor: grabbing;
 }
 
 .resultsFilters::-webkit-scrollbar {

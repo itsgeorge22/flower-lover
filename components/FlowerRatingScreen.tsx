@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
 } from "react";
 import { flowerRoles, flowerSeasonalities } from "../data/flower-taxonomy";
 import { flowerLoaderEmojis } from "../data/flower-loader";
@@ -651,6 +652,13 @@ function ResultsView({
   const [activeFilter, setActiveFilter] = useState<ResultFilter>("all");
   const resultsFiltersRef = useRef<HTMLDivElement>(null);
   const [filterEdges, setFilterEdges] = useState({ left: false, right: false });
+  const [filtersDragging, setFiltersDragging] = useState(false);
+  const filterDragRef = useRef({
+    pointerId: -1,
+    startX: 0,
+    startScrollLeft: 0,
+  });
+  const suppressFilterClickRef = useRef(false);
 
   const updateFilterEdges = useCallback(() => {
     const filters = resultsFiltersRef.current;
@@ -670,6 +678,71 @@ function ResultsView({
         : nextEdges,
     );
   }, []);
+
+  const updateFilterSpacing = useCallback(() => {
+    const filters = resultsFiltersRef.current;
+    const buttons = filters?.querySelectorAll<HTMLButtonElement>("button");
+
+    if (!filters || !buttons || buttons.length === 0) {
+      return;
+    }
+
+    const firstButton = buttons[0];
+    const lastButton = buttons[buttons.length - 1];
+    const startSpace = Math.max(16, filters.clientWidth / 2 - firstButton.offsetWidth / 2);
+    const endSpace = Math.max(16, filters.clientWidth / 2 - lastButton.offsetWidth / 2);
+
+    filters.style.setProperty("--results-filter-start-space", `${startSpace}px`);
+    filters.style.setProperty("--results-filter-end-space", `${endSpace}px`);
+  }, []);
+
+  const handleFilterPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+
+    filterDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: event.currentTarget.scrollLeft,
+    };
+    suppressFilterClickRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const handleFilterPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = filterDragRef.current;
+
+    if (drag.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const dragDistance = event.clientX - drag.startX;
+
+    if (Math.abs(dragDistance) > 4) {
+      suppressFilterClickRef.current = true;
+      setFiltersDragging(true);
+      event.preventDefault();
+    }
+
+    event.currentTarget.scrollLeft = drag.startScrollLeft - dragDistance;
+  };
+
+  const finishFilterDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (filterDragRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    filterDragRef.current.pointerId = -1;
+    setFiltersDragging(false);
+    window.setTimeout(() => {
+      suppressFilterClickRef.current = false;
+    }, 0);
+  };
 
   const filteredFlowers =
     activeFilter === "all"
@@ -692,17 +765,21 @@ function ResultsView({
       return;
     }
 
+    updateFilterSpacing();
     updateFilterEdges();
     filters.addEventListener("scroll", updateFilterEdges, { passive: true });
 
-    const resizeObserver = new ResizeObserver(updateFilterEdges);
+    const resizeObserver = new ResizeObserver(() => {
+      updateFilterSpacing();
+      updateFilterEdges();
+    });
     resizeObserver.observe(filters);
 
     return () => {
       filters.removeEventListener("scroll", updateFilterEdges);
       resizeObserver.disconnect();
     };
-  }, [updateFilterEdges]);
+  }, [updateFilterEdges, updateFilterSpacing]);
 
   useEffect(() => {
     if (!toast) {
@@ -765,8 +842,14 @@ function ResultsView({
       <div className={styles.resultsFiltersShell}>
         <div
           ref={resultsFiltersRef}
-          className={styles.resultsFilters}
+          className={`${styles.resultsFilters} ${
+            filtersDragging ? styles.resultsFiltersDragging : ""
+          }`}
           aria-label="Фильтры результатов"
+          onPointerDown={handleFilterPointerDown}
+          onPointerMove={handleFilterPointerMove}
+          onPointerUp={finishFilterDrag}
+          onPointerCancel={finishFilterDrag}
         >
           {resultFilterOptions.map((filter) => (
             <button
@@ -776,7 +859,25 @@ function ResultsView({
                 activeFilter === filter.value ? styles.resultsFilterButtonActive : ""
               }`}
               aria-pressed={activeFilter === filter.value}
-              onClick={() => setActiveFilter(filter.value)}
+              onClick={(event) => {
+                if (suppressFilterClickRef.current) {
+                  event.preventDefault();
+                  return;
+                }
+
+                setActiveFilter(filter.value);
+
+                const filters = resultsFiltersRef.current;
+                const button = event.currentTarget;
+
+                if (filters) {
+                  filters.scrollTo({
+                    left:
+                      button.offsetLeft + button.offsetWidth / 2 - filters.clientWidth / 2,
+                    behavior: "smooth",
+                  });
+                }
+              }}
             >
               <span>{filter.label}</span>
               <span className={styles.resultsFilterCount}>
