@@ -865,7 +865,10 @@ function ResultsView({
                     left: filters.scrollLeft + buttonCenter - filtersCenter,
                     behavior: "smooth",
                   });
-                } else if (filters.scrollLeft > 1) {
+                } else if (
+                  buttonBounds.left < filtersBounds.left &&
+                  filters.scrollLeft > 1
+                ) {
                   filters.scrollTo({
                     left: 0,
                     behavior: "smooth",
