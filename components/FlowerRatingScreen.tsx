@@ -120,7 +120,8 @@ function FlowerCard({
             alt={flower.imageAlt ?? flower.name}
             fill
             sizes="(max-width: 440px) calc(100vw - 48px), 392px"
-            priority
+            loading="eager"
+            decoding="sync"
           />
         ) : (
           <span className={styles.imageFallback} aria-hidden="true">
@@ -577,18 +578,22 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
         <div className={styles.surveyBody}>
           <div className={styles.cardStage} aria-live="polite">
             <FlowerCard
+              key={currentFlower.id}
               flower={currentFlower}
               selected={selectedRating}
               reactionKey={reactionKey}
               onReactionComplete={handleReactionComplete}
               motionClassName={isTransitioning ? styles.cardLeaving : ""}
             />
-            {isTransitioning && nextFlower && (
+            {nextFlower && (
               <FlowerCard
+                key={nextFlower.id}
                 flower={nextFlower}
                 selected={null}
                 reactionKey={reactionKey}
-                motionClassName={styles.cardEntering}
+                motionClassName={
+                  isTransitioning ? styles.cardEntering : styles.cardPreloading
+                }
                 hidden
               />
             )}

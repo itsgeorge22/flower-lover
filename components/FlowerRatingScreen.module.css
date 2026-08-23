@@ -231,6 +231,14 @@
   will-change: transform, opacity;
 }
 
+.cardPreloading {
+  z-index: 0;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 48px)) rotate(9deg) scale(0.96);
+}
+
 .completionCard {
   align-items: center;
   justify-content: center;
