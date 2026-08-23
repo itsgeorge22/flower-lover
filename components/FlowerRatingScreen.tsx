@@ -96,6 +96,67 @@ const ratingOptions: Array<{
   },
 ];
 
+function AnimatedProgressNumber({ value }: { value: number }) {
+  const lastValueRef = useRef(value);
+  const [transition, setTransition] = useState<{
+    from: number;
+    to: number;
+    direction: "forward" | "backward";
+  } | null>(null);
+
+  useEffect(() => {
+    const previousValue = lastValueRef.current;
+
+    if (previousValue === value) {
+      return;
+    }
+
+    lastValueRef.current = value;
+    setTransition({
+      from: previousValue,
+      to: value,
+      direction: value > previousValue ? "forward" : "backward",
+    });
+
+    const transitionTimer = window.setTimeout(() => setTransition(null), 320);
+
+    return () => window.clearTimeout(transitionTimer);
+  }, [value]);
+
+  if (!transition) {
+    return (
+      <span className={styles.progressCounter} aria-hidden="true">
+        <span className={styles.progressCounterValue}>{lastValueRef.current}</span>
+      </span>
+    );
+  }
+
+  const isForward = transition.direction === "forward";
+
+  return (
+    <span className={styles.progressCounter} aria-hidden="true">
+      <span
+        className={`${styles.progressCounterValue} ${
+          isForward
+            ? styles.progressCounterExitForward
+            : styles.progressCounterExitBackward
+        }`}
+      >
+        {transition.from}
+      </span>
+      <span
+        className={`${styles.progressCounterValue} ${
+          isForward
+            ? styles.progressCounterEnterForward
+            : styles.progressCounterEnterBackward
+        }`}
+      >
+        {transition.to}
+      </span>
+    </span>
+  );
+}
+
 function Progress({
   current,
   total,
@@ -125,8 +186,9 @@ function Progress({
         <ChevronLeft size={24} strokeWidth={2} aria-hidden="true" />
       </button>
       <div className={styles.progressContent}>
-        <span className={styles.progressLabel}>
-          {current} из {total}
+        <span className={styles.progressLabel} aria-label={`${current} из ${total}`}>
+          <AnimatedProgressNumber value={current} />
+          <span aria-hidden="true"> из {total}</span>
         </span>
         <div
           className={styles.progressTrack}
