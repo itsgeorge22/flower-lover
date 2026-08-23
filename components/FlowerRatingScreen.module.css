@@ -1742,10 +1742,23 @@
   opacity: 0.55;
 }
 
+.shareButton:disabled {
+  cursor: wait;
+  opacity: 0.78;
+}
+
+.shareButton:disabled::before {
+  opacity: 0;
+}
+
 .shareButtonIcon {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
+}
+
+.shareButtonLoadingIcon {
+  animation: shareButtonSpin 800ms linear infinite;
 }
 
 .shareButton:focus-visible {
@@ -1756,7 +1769,7 @@
 .toast {
   --toast-color: #1f9d66;
   position: fixed;
-  z-index: 20;
+  z-index: 100;
   bottom: 132px;
   left: 50%;
   width: min(calc(100% - 32px), 408px);
@@ -1771,6 +1784,12 @@
   background: #ffffff;
   box-shadow: 0 16px 36px rgba(23, 18, 22, 0.18);
   animation: toastLifecycle 1.5s ease both;
+}
+
+@keyframes shareButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .toastSuccess {

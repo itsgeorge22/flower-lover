@@ -1,7 +1,15 @@
 "use client";
 
 import Image from "next/image";
-import { Check, ChevronLeft, ChevronRight, RefreshCw, Share2, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  LoaderCircle,
+  RefreshCw,
+  Share2,
+  X,
+} from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -13,7 +21,9 @@ import {
 import { flowerRoles, flowerSeasonalities } from "../data/flower-taxonomy";
 import { flowerLoaderEmojis } from "../data/flower-loader";
 import type { Flower, FlowerRoleId, FlowerSeasonalityId } from "../types/flower";
+import { generateFlowerShareCard } from "../utils/generate-share-card";
 import styles from "./FlowerRatingScreen.module.css";
+import { ShareResultsModal } from "./ShareResultsModal";
 
 type Rating = "dislike" | "neutral" | "like";
 type Answer = Rating | "skipped";
@@ -727,6 +737,8 @@ function ResultsView({
     message: string;
   } | null>(null);
   const [activeFilter, setActiveFilter] = useState<ResultFilter>("all");
+  const [shareCard, setShareCard] = useState<{ blob: Blob; url: string } | null>(null);
+  const [shareCardLoading, setShareCardLoading] = useState(false);
   const resultsFiltersRef = useRef<HTMLDivElement>(null);
   const [filterEdges, setFilterEdges] = useState({ left: false, right: false });
   const [filtersDragging, setFiltersDragging] = useState(false);
@@ -849,6 +861,14 @@ function ResultsView({
     return () => window.clearTimeout(toastTimer);
   }, [toast]);
 
+  useEffect(() => {
+    return () => {
+      if (shareCard) {
+        URL.revokeObjectURL(shareCard.url);
+      }
+    };
+  }, [shareCard]);
+
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ id: Date.now(), type, message });
   };
@@ -858,33 +878,20 @@ function ResultsView({
     ...flowers.map((flower) => `• ${flower.name} — ${answerLabels[answers[flower.id]]}`),
   ].join("\n");
 
-  const copyResults = async () => {
-    await navigator.clipboard.writeText(shareText);
-    showToast("success", "Результат скопирован");
-  };
-
   const handleShare = async () => {
+    if (shareCardLoading) {
+      return;
+    }
+
+    setShareCardLoading(true);
+
     try {
-      if (navigator.share) {
-        await navigator.share({
-          title: "Мои любимые цветы",
-          text: shareText,
-        });
-        showToast("success", "Результат отправлен");
-        return;
-      }
-
-      await copyResults();
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return;
-      }
-
-      try {
-        await copyResults();
-      } catch {
-        showToast("error", "Не удалось поделиться результатом");
-      }
+      const blob = await generateFlowerShareCard(flowers, answers);
+      setShareCard({ blob, url: URL.createObjectURL(blob) });
+    } catch {
+      showToast("error", "Не удалось создать карточку результата");
+    } finally {
+      setShareCardLoading(false);
     }
   };
 
@@ -1015,9 +1022,23 @@ function ResultsView({
 
       <div className={styles.resultsFooter}>
         <div className={styles.resultsActions}>
-          <button type="button" className={styles.shareButton} onClick={handleShare}>
-            <span>Поделиться</span>
-            <Share2 className={styles.shareButtonIcon} size={16} aria-hidden="true" />
+          <button
+            type="button"
+            className={styles.shareButton}
+            disabled={shareCardLoading}
+            aria-busy={shareCardLoading}
+            onClick={handleShare}
+          >
+            <span>{shareCardLoading ? "Создаём карточку…" : "Поделиться"}</span>
+            {shareCardLoading ? (
+              <LoaderCircle
+                className={`${styles.shareButtonIcon} ${styles.shareButtonLoadingIcon}`}
+                size={16}
+                aria-hidden="true"
+              />
+            ) : (
+              <Share2 className={styles.shareButtonIcon} size={16} aria-hidden="true" />
+            )}
           </button>
           <button
             type="button"
@@ -1046,6 +1067,16 @@ function ResultsView({
           <span className={styles.toastMessage}>{toast.message}</span>
           <span className={styles.toastTimer} aria-hidden="true" />
         </div>
+      )}
+
+      {shareCard && (
+        <ShareResultsModal
+          imageBlob={shareCard.blob}
+          imageUrl={shareCard.url}
+          shareText={shareText}
+          onClose={() => setShareCard(null)}
+          onNotify={showToast}
+        />
       )}
     </section>
   );
