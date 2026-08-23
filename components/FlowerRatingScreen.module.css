@@ -1359,12 +1359,25 @@
   line-height: 20px;
 }
 
-.resultsFilters {
+.resultsFiltersShell {
+  position: relative;
+  z-index: 2;
   flex: 0 0 auto;
+  margin-right: -16px;
+  margin-bottom: -16px;
+  margin-left: -16px;
+  padding-bottom: 16px;
+  background: linear-gradient(
+    180deg,
+    #faf8f9 0%,
+    rgba(250, 248, 249, 1) 50%,
+    rgba(250, 248, 249, 0) 100%
+  );
+}
+
+.resultsFilters {
   display: flex;
   gap: 8px;
-  margin-right: -16px;
-  margin-left: -16px;
   padding: 0 16px 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
@@ -1374,6 +1387,41 @@
 
 .resultsFilters::-webkit-scrollbar {
   display: none;
+}
+
+.resultsFiltersEdge {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  bottom: 16px;
+  width: 32px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.resultsFiltersEdgeLeft {
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    #faf8f9 0%,
+    rgba(250, 248, 249, 0.92) 38%,
+    rgba(250, 248, 249, 0) 100%
+  );
+}
+
+.resultsFiltersEdgeRight {
+  right: 0;
+  background: linear-gradient(
+    270deg,
+    #faf8f9 0%,
+    rgba(250, 248, 249, 0.92) 38%,
+    rgba(250, 248, 249, 0) 100%
+  );
+}
+
+.resultsFiltersEdgeVisible {
+  opacity: 1;
 }
 
 .resultsFilterButton {
@@ -1449,7 +1497,7 @@
   gap: 8px;
   margin-right: -24px;
   margin-left: -24px;
-  padding: 12px 24px 168px;
+  padding: 28px 24px 168px;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;

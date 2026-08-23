@@ -618,6 +618,27 @@ function ResultsView({
     message: string;
   } | null>(null);
   const [activeFilter, setActiveFilter] = useState<ResultFilter>("all");
+  const resultsFiltersRef = useRef<HTMLDivElement>(null);
+  const [filterEdges, setFilterEdges] = useState({ left: false, right: false });
+
+  const updateFilterEdges = useCallback(() => {
+    const filters = resultsFiltersRef.current;
+
+    if (!filters) {
+      return;
+    }
+
+    const nextEdges = {
+      left: filters.scrollLeft > 1,
+      right: filters.scrollLeft + filters.clientWidth < filters.scrollWidth - 1,
+    };
+
+    setFilterEdges((currentEdges) =>
+      currentEdges.left === nextEdges.left && currentEdges.right === nextEdges.right
+        ? currentEdges
+        : nextEdges,
+    );
+  }, []);
 
   const filteredFlowers =
     activeFilter === "all"
@@ -632,6 +653,25 @@ function ResultsView({
         : flowers.filter((flower) => answers[flower.id] === value).length,
     ]),
   ) as Record<ResultFilter, number>;
+
+  useEffect(() => {
+    const filters = resultsFiltersRef.current;
+
+    if (!filters) {
+      return;
+    }
+
+    updateFilterEdges();
+    filters.addEventListener("scroll", updateFilterEdges, { passive: true });
+
+    const resizeObserver = new ResizeObserver(updateFilterEdges);
+    resizeObserver.observe(filters);
+
+    return () => {
+      filters.removeEventListener("scroll", updateFilterEdges);
+      resizeObserver.disconnect();
+    };
+  }, [updateFilterEdges]);
 
   useEffect(() => {
     if (!toast) {
@@ -691,21 +731,41 @@ function ResultsView({
         </p>
       </header>
 
-      <div className={styles.resultsFilters} aria-label="Фильтры результатов">
-        {resultFilterOptions.map((filter) => (
-          <button
-            key={filter.value}
-            type="button"
-            className={`${styles.resultsFilterButton} ${
-              activeFilter === filter.value ? styles.resultsFilterButtonActive : ""
-            }`}
-            aria-pressed={activeFilter === filter.value}
-            onClick={() => setActiveFilter(filter.value)}
-          >
-            <span>{filter.label}</span>
-            <span className={styles.resultsFilterCount}>{filterCounts[filter.value]}</span>
-          </button>
-        ))}
+      <div className={styles.resultsFiltersShell}>
+        <div
+          ref={resultsFiltersRef}
+          className={styles.resultsFilters}
+          aria-label="Фильтры результатов"
+        >
+          {resultFilterOptions.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              className={`${styles.resultsFilterButton} ${
+                activeFilter === filter.value ? styles.resultsFilterButtonActive : ""
+              }`}
+              aria-pressed={activeFilter === filter.value}
+              onClick={() => setActiveFilter(filter.value)}
+            >
+              <span>{filter.label}</span>
+              <span className={styles.resultsFilterCount}>
+                {filterCounts[filter.value]}
+              </span>
+            </button>
+          ))}
+        </div>
+        <span
+          className={`${styles.resultsFiltersEdge} ${styles.resultsFiltersEdgeLeft} ${
+            filterEdges.left ? styles.resultsFiltersEdgeVisible : ""
+          }`}
+          aria-hidden="true"
+        />
+        <span
+          className={`${styles.resultsFiltersEdge} ${styles.resultsFiltersEdgeRight} ${
+            filterEdges.right ? styles.resultsFiltersEdgeVisible : ""
+          }`}
+          aria-hidden="true"
+        />
       </div>
 
       <div className={styles.resultsList} key={activeFilter}>
