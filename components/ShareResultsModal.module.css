@@ -95,7 +95,7 @@
 
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -165,12 +165,6 @@
 
   .preview {
     width: min(100%, 280px);
-  }
-}
-
-@media (max-width: 380px) {
-  .actions {
-    grid-template-columns: 1fr;
   }
 }
 
