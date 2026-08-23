@@ -559,8 +559,11 @@ function RatingButton({
       className={`${styles.ratingButton} ${styles[option.value]} ${selected ? styles.selected : ""}`}
       aria-pressed={selected}
       disabled={disabled}
-      onPointerEnter={startEmojiAnimation}
-      onFocus={startEmojiAnimation}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse" && event.buttons === 0) {
+          startEmojiAnimation();
+        }
+      }}
       onClick={() => onSelect(option.value)}
     >
       <span
