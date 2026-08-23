@@ -11,6 +11,31 @@ const QUALITY = "medium";
 const MAX_RETRIES = 3;
 const WEBP_QUALITY = 88;
 
+const flowerSpecificGuidance = {
+  tulip:
+    "Show one unmistakable classic tulip bloom on a single natural stem. The bloom must have six smooth, simple tepals forming a clean cup or goblet silhouette, with no ruffled, doubled, peony-like, or rose-like petal mass.",
+  freesia:
+    "Show a botanically accurate freesia as one gently arching, one-sided raceme with several small funnel-shaped tubular flowers and a few buds opening progressively along the same slender stem. Use one coherent cultivar color only; do not mix differently colored flowers on the plant.",
+  veronica:
+    "Show a botanically accurate Veronica flower spike: one narrow, tapered terminal raceme densely covered with many very small four-lobed tubular flowers. Individual flowers must remain tiny relative to the spike; do not create large flat petals, daisy-like blooms, or a bottlebrush texture.",
+  "spray-chrysanthemum":
+    "Show one naturally branching spray-chrysanthemum stem carrying several separate small chrysanthemum flower heads and buds at different opening stages. Do not turn it into one oversized disbud flower or a compact bouquet.",
+  "spray-carnation":
+    "Show one naturally branching spray-carnation stem with several small carnation blooms and buds. Each bloom must have the characteristic softly ruffled, finely serrated petal edges of Dianthus caryophyllus; do not create roses or peonies.",
+  gladiolus:
+    "Show the characteristic tall, mostly one-sided gladiolus spike with multiple large funnel-shaped flowers opening progressively from lower to upper positions and unopened buds near the tip. Keep it as one coherent natural stem.",
+  snapdragon:
+    "Show one upright snapdragon raceme densely arranged with many unmistakable bilabiate, mouth-shaped Antirrhinum flowers and buds along the stem. Do not substitute generic tubular bells or gladiolus flowers.",
+  matricaria:
+    "Show a light branched spray of many small feverfew flower heads, each with a compact yellow disc center and short white daisy-like ray petals. Keep individual flowers small and naturally varied rather than creating one large daisy.",
+  limonium:
+    "Show a botanically accurate airy, highly branched Limonium spray carrying clouds of numerous tiny papery lavender-purple flowers. Preserve plenty of visible space between slender branches and do not create large individual blooms.",
+  solidago:
+    "Show a naturally arching, branched goldenrod plume densely covered with hundreds of tiny golden-yellow composite flower heads. Do not create mimosa balls, large daisies, or one solid artificial mass.",
+  mimosa:
+    "Show one natural Acacia dealbata branch with silvery-green bipinnate fern-like leaves and branching clusters of many small fluffy golden-yellow spherical flower heads. Keep the botanical branch structure visible and do not create solidago plumes.",
+};
+
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const projectDirectory = path.resolve(scriptDirectory, "..");
 const outputDirectory = path.join(projectDirectory, "public", "images", "flowers");
@@ -25,10 +50,15 @@ const temporaryErrorCodes = new Set([
 ]);
 
 export function createPrompt(flower) {
+  const botanicalGuidance = flowerSpecificGuidance[flower.id]
+    ? `\nSpecies-specific botanical direction: ${flowerSpecificGuidance[flower.id]}\n`
+    : "";
+
   return `
 Create a photorealistic premium botanical studio photograph of a living ${flower.name} (${flower.latinName}).
+${botanicalGuidance}
 
-The flower must look vivid, fresh, beautiful, natural, and botanically recognizable. Make the flower the clear primary subject, contained within the central 70% of the image width. Reserve approximately 15% of the image width on both the left and right sides as clean, uncluttered breathing room showing only the warm neutral background. Do not let petals, stems, or leaves touch the side edges or enter these clear side margins. The most important part of the flower — its bud, flower head, or main inflorescence — must be precisely centered in the image. Show enough of its natural structure and defining botanical features for the species to be immediately recognizable. If this flower naturally grows as a cluster, spike, branch, or compound inflorescence rather than a single flower head, show that characteristic natural form instead of forcing it into a single bloom.
+The flower must look vivid, fresh, beautiful, natural, and botanically recognizable. Make the flower the clear primary subject, contained within the central 70% of the image width. Reserve approximately 15% of the image width on both the left and right sides as clean, uncluttered breathing room showing only the warm neutral background. Keep the entire top 10% of the image height completely clear as additional breathing room showing only the background: the highest point of every petal, bud, flower head, inflorescence, stem, or leaf must begin below this top safe area. Do not let any part of the plant enter the top 10% or the clear side margins. The most important part of the flower — its bud, flower head, or main inflorescence — must be precisely centered in the image. Show enough of its natural structure and defining botanical features for the species to be immediately recognizable. If this flower naturally grows as a cluster, spike, branch, or compound inflorescence rather than a single flower head, show that characteristic natural form instead of forcing it into a single bloom.
 
 Use soft diffused daylight, a light warm neutral studio background, subtle depth of field, realistic petal texture, natural color variation, and a clean premium editorial aesthetic. Compose the final image in an exact horizontal 4:3 aspect ratio with consistent close framing across the full series. Keep the flower's key botanical structure inside the central safe area so it remains recognizable when displayed with center cropping in a mobile flower-rating card. A small amount of natural stem or leaves may be visible when it helps identification, but the centered flower head or primary inflorescence must remain dominant.
 
@@ -118,6 +148,23 @@ function validateFlowers() {
   }
 }
 
+function selectFlowers() {
+  const requestedIds = process.argv.slice(2);
+
+  if (requestedIds.length === 0) {
+    return flowers;
+  }
+
+  const flowersById = new Map(flowers.map((flower) => [flower.id, flower]));
+  const unknownIds = requestedIds.filter((id) => !flowersById.has(id));
+
+  if (unknownIds.length > 0) {
+    throw new Error(`Unknown flower id(s): ${unknownIds.join(", ")}.`);
+  }
+
+  return requestedIds.map((id) => flowersById.get(id));
+}
+
 async function fileExists(filePath) {
   try {
     await access(filePath);
@@ -178,6 +225,7 @@ async function main() {
   }
 
   validateFlowers();
+  const selectedFlowers = selectFlowers();
   await mkdir(outputDirectory, { recursive: true });
 
   const client = new OpenAI({
@@ -192,11 +240,11 @@ async function main() {
   };
   const failures = [];
 
-  console.log(`Generating ${flowers.length} flower images with ${MODEL}...`);
+  console.log(`Generating ${selectedFlowers.length} flower images with ${MODEL}...`);
   console.log(`Output: ${outputDirectory}\n`);
 
-  for (const [index, flower] of flowers.entries()) {
-    const position = `[${index + 1}/${flowers.length}]`;
+  for (const [index, flower] of selectedFlowers.entries()) {
+    const position = `[${index + 1}/${selectedFlowers.length}]`;
     const outputPath = path.join(outputDirectory, `${flower.id}.webp`);
 
     if (await fileExists(outputPath)) {
@@ -228,7 +276,7 @@ async function main() {
   console.log(`  Generated: ${summary.generated}`);
   console.log(`  Skipped:   ${summary.skipped}`);
   console.log(`  Failed:    ${summary.failed}`);
-  console.log(`  Total:     ${flowers.length}`);
+  console.log(`  Total:     ${selectedFlowers.length}`);
 
   if (failures.length > 0) {
     console.log("\nFailed flowers:");

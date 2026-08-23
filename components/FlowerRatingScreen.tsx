@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Check, RefreshCw, Share2, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, RefreshCw, Share2, X } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Flower } from "../types/flower";
 import styles from "./FlowerRatingScreen.module.css";
@@ -10,23 +10,18 @@ type Rating = "dislike" | "neutral" | "like";
 type Answer = Rating | "skipped";
 type SavedAnswers = Record<string, Answer>;
 type PageExit = "survey" | "results";
+type TransitionDirection = "forward" | "backward";
 
 const STORAGE_KEY = "flower-lover-answers";
 const COMPLETION_LOADER_DURATION = 3300;
 const PAGE_EXIT_DURATION = 420;
 const flowerLoaderEmojis = ["🌸", "🌻", "🌷"];
-const unknownIcon = "/images/thinking-face.png";
-const unknownReaction = {
-  value: "skipped" as const,
-  icon: unknownIcon,
-  filterColor: "rgba(85, 76, 83, 0.32)",
-};
 
 const answerLabels: Record<Answer, string> = {
   dislike: "Не хочу",
   neutral: "Иногда",
   like: "Хочу",
-  skipped: "Не знаю",
+  skipped: "Пропущено",
 };
 
 type FlowerRatingScreenProps = {
@@ -42,19 +37,19 @@ const ratingOptions: Array<{
   {
     value: "dislike",
     label: "Не хочу",
-    icon: "/images/frowning-face.png",
+    icon: "☹️",
     filterColor: "rgba(90, 64, 157, 0.32)",
   },
   {
     value: "neutral",
     label: "Иногда",
-    icon: "/images/neutral-face.png",
+    icon: "😐",
     filterColor: "rgba(211, 105, 0, 0.32)",
   },
   {
     value: "like",
     label: "Хочу",
-    icon: "/images/heart-eyes.png",
+    icon: "😍",
     filterColor: "rgba(255, 64, 128, 0.32)",
   },
 ];
@@ -62,27 +57,55 @@ const ratingOptions: Array<{
 function Progress({
   current,
   total,
+  onPrevious,
+  onNext,
+  previousDisabled,
+  nextDisabled,
 }: {
   current: number;
   total: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  previousDisabled: boolean;
+  nextDisabled: boolean;
 }) {
   const progress = total > 0 ? Math.min(100, Math.max(0, (current / total) * 100)) : 0;
 
   return (
     <header className={styles.progressSection}>
-      <span className={styles.progressLabel}>
-        {current} из {total}
-      </span>
-      <div
-        className={styles.progressTrack}
-        role="progressbar"
-        aria-valuemin={0}
-        aria-valuemax={total}
-        aria-valuenow={current}
-        aria-label={`Прогресс: ${current} из ${total}`}
+      <button
+        type="button"
+        className={styles.progressButton}
+        aria-label="Предыдущий цветок"
+        disabled={previousDisabled}
+        onClick={onPrevious}
       >
-        <span className={styles.progressFill} style={{ width: `${progress}%` }} />
+        <ChevronLeft size={24} strokeWidth={2} aria-hidden="true" />
+      </button>
+      <div className={styles.progressContent}>
+        <span className={styles.progressLabel}>
+          {current} из {total}
+        </span>
+        <div
+          className={styles.progressTrack}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={total}
+          aria-valuenow={current}
+          aria-label={`Прогресс: ${current} из ${total}`}
+        >
+          <span className={styles.progressFill} style={{ width: `${progress}%` }} />
+        </div>
       </div>
+      <button
+        type="button"
+        className={styles.progressButton}
+        aria-label="Следующий цветок"
+        disabled={nextDisabled}
+        onClick={onNext}
+      >
+        <ChevronRight size={24} strokeWidth={2} aria-hidden="true" />
+      </button>
     </header>
   );
 }
@@ -96,16 +119,13 @@ function FlowerCard({
   hidden = false,
 }: {
   flower: Flower;
-  selected: Answer | null;
+  selected: Rating | null;
   reactionKey: number;
   onReactionComplete?: () => void;
   motionClassName?: string;
   hidden?: boolean;
 }) {
-  const reaction =
-    selected === "skipped"
-      ? unknownReaction
-      : ratingOptions.find((option) => option.value === selected);
+  const reaction = ratingOptions.find((option) => option.value === selected);
 
   return (
     <article
@@ -135,15 +155,13 @@ function FlowerCard({
             style={{ "--reaction-color": reaction.filterColor } as CSSProperties}
             aria-hidden="true"
           >
-            <Image
+            <span
               className={styles.reactionIcon}
-              src={reaction.icon}
-              width={64}
-              height={64}
-              alt=""
-              priority
+              aria-hidden="true"
               onAnimationEnd={onReactionComplete}
-            />
+            >
+              {reaction.icon}
+            </span>
           </div>
         )}
       </div>
@@ -177,7 +195,9 @@ function RatingButton({
       disabled={disabled}
       onClick={() => onSelect(option.value)}
     >
-      <Image className={styles.emoji} src={option.icon} width={40} height={40} alt="" />
+      <span className={styles.emoji} aria-hidden="true">
+        {option.icon}
+      </span>
       <span>{option.label}</span>
     </button>
   );
@@ -186,13 +206,11 @@ function RatingButton({
 function RatingActions({
   selected,
   onSelect,
-  onSkip,
   disabled,
   finishing,
 }: {
-  selected: Answer | null;
+  selected: Rating | null;
   onSelect: (value: Rating) => void;
-  onSkip: () => void;
   disabled: boolean;
   finishing: boolean;
 }) {
@@ -209,15 +227,6 @@ function RatingActions({
           />
         ))}
       </div>
-      <button
-        type="button"
-        className={`${styles.skipButton} ${styles.unknownButton}`}
-        disabled={disabled}
-        onClick={onSkip}
-      >
-        <Image className={styles.unknownEmoji} src={unknownIcon} width={20} height={20} alt="" />
-        <span>Не знаю</span>
-      </button>
     </footer>
   );
 }
@@ -348,10 +357,10 @@ function ResultsView({
                   answer === "skipped" ? styles.skipped : styles[answer]
                 }`}
               >
-                {answer === "skipped" ? (
-                  <Image src={unknownIcon} width={24} height={24} alt="" />
-                ) : (
-                  option && <Image src={option.icon} width={24} height={24} alt="" />
+                {option && (
+                  <span className={styles.resultAnswerEmoji} aria-hidden="true">
+                    {option.icon}
+                  </span>
                 )}
                 {answerLabels[answer]}
               </span>
@@ -368,11 +377,11 @@ function ResultsView({
           </button>
           <button
             type="button"
-            className={`${styles.skipButton} ${styles.restartButton}`}
+            className={`${styles.shareButton} ${styles.restartButton}`}
             onClick={onRestart}
           >
             <span>Пройти заново</span>
-            <RefreshCw className={styles.skipButtonIcon} size={16} aria-hidden="true" />
+            <RefreshCw className={styles.shareButtonIcon} size={16} aria-hidden="true" />
           </button>
         </div>
       </div>
@@ -401,9 +410,11 @@ function ResultsView({
 export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   const selectionLockedRef = useRef(false);
   const [currentFlowerIndex, setCurrentFlowerIndex] = useState(0);
-  const [selectedRating, setSelectedRating] = useState<Answer | null>(null);
+  const [selectedRating, setSelectedRating] = useState<Rating | null>(null);
   const [reactionKey, setReactionKey] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionDirection, setTransitionDirection] =
+    useState<TransitionDirection>("forward");
   const [answers, setAnswers] = useState<SavedAnswers>({});
   const [storageReady, setStorageReady] = useState(false);
   const [showResults, setShowResults] = useState(false);
@@ -413,7 +424,27 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   const hasNextFlower = currentFlowerIndex < flowers.length - 1;
   const nextFlowerIndex = hasNextFlower ? currentFlowerIndex + 1 : currentFlowerIndex;
   const nextFlower = hasNextFlower ? flowers[nextFlowerIndex] : undefined;
-  const progressIndex = isTransitioning && nextFlower ? nextFlowerIndex : currentFlowerIndex;
+  const hasPreviousFlower = currentFlowerIndex > 0;
+  const previousFlowerIndex = hasPreviousFlower
+    ? currentFlowerIndex - 1
+    : currentFlowerIndex;
+  const previousFlower = hasPreviousFlower ? flowers[previousFlowerIndex] : undefined;
+  const transitionFlower =
+    transitionDirection === "backward" ? previousFlower : nextFlower;
+  const transitionFlowerIndex =
+    transitionDirection === "backward" ? previousFlowerIndex : nextFlowerIndex;
+  const stagedFlower = isTransitioning ? transitionFlower : nextFlower;
+  const progressIndex =
+    isTransitioning && transitionFlower
+      ? transitionFlowerIndex
+      : currentFlowerIndex;
+  const savedCurrentAnswer = currentFlower ? answers[currentFlower.id] : undefined;
+  const savedCurrentRating =
+    savedCurrentAnswer && savedCurrentAnswer !== "skipped"
+      ? savedCurrentAnswer
+      : null;
+  const displayedRating = selectedRating ?? savedCurrentRating;
+  const navigationDisabled = selectedRating !== null || isTransitioning;
 
   useEffect(() => {
     try {
@@ -461,18 +492,21 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
     }
 
     const transitionTimer = window.setTimeout(() => {
-      if (hasNextFlower) {
+      if (transitionFlower) {
         selectionLockedRef.current = false;
         setSelectedRating(null);
         setIsTransitioning(false);
-        setCurrentFlowerIndex(nextFlowerIndex);
-      } else {
+        setCurrentFlowerIndex(transitionFlowerIndex);
+      } else if (transitionDirection === "forward") {
         setPageExit("survey");
+      } else {
+        selectionLockedRef.current = false;
+        setIsTransitioning(false);
       }
-    }, hasNextFlower ? 780 : COMPLETION_LOADER_DURATION);
+    }, transitionFlower ? 780 : COMPLETION_LOADER_DURATION);
 
     return () => window.clearTimeout(transitionTimer);
-  }, [hasNextFlower, isTransitioning, nextFlowerIndex]);
+  }, [isTransitioning, transitionDirection, transitionFlower, transitionFlowerIndex]);
 
   useEffect(() => {
     if (!pageExit) {
@@ -492,6 +526,7 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
         setSelectedRating(null);
         setReactionKey(0);
         setIsTransitioning(false);
+        setTransitionDirection("forward");
         setShowResults(false);
       }
 
@@ -513,25 +548,39 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   };
 
   const handleRatingSelect = (rating: Rating) => {
-    if (selectionLockedRef.current || selectedRating !== null || isTransitioning) {
+    if (
+      selectionLockedRef.current ||
+      selectedRating !== null ||
+      isTransitioning ||
+      savedCurrentRating === rating
+    ) {
       return;
     }
 
     selectionLockedRef.current = true;
+    setTransitionDirection("forward");
     saveAnswer(rating);
     setSelectedRating(rating);
     setReactionKey((currentKey) => currentKey + 1);
   };
 
-  const handleSkip = () => {
+  const handleNavigate = (direction: TransitionDirection) => {
     if (selectionLockedRef.current || selectedRating !== null || isTransitioning) {
       return;
     }
 
+    if (direction === "backward" && !hasPreviousFlower) {
+      return;
+    }
+
     selectionLockedRef.current = true;
-    saveAnswer("skipped");
-    setSelectedRating("skipped");
-    setReactionKey((currentKey) => currentKey + 1);
+    setTransitionDirection(direction);
+
+    if (!savedCurrentAnswer) {
+      saveAnswer("skipped");
+    }
+
+    setIsTransitioning(true);
   };
 
   const handleReactionComplete = () => {
@@ -574,6 +623,10 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
         <Progress
           current={progressIndex + 1}
           total={flowers.length}
+          onPrevious={() => handleNavigate("backward")}
+          onNext={() => handleNavigate("forward")}
+          previousDisabled={!hasPreviousFlower || navigationDisabled}
+          nextDisabled={navigationDisabled}
         />
         <div className={styles.surveyBody}>
           <div className={styles.cardStage} aria-live="polite">
@@ -583,29 +636,42 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
               selected={selectedRating}
               reactionKey={reactionKey}
               onReactionComplete={handleReactionComplete}
-              motionClassName={isTransitioning ? styles.cardLeaving : ""}
+              motionClassName={
+                isTransitioning
+                  ? transitionDirection === "backward"
+                    ? styles.cardLeavingRight
+                    : styles.cardLeaving
+                  : ""
+              }
             />
-            {nextFlower && (
+            {stagedFlower && (
               <FlowerCard
-                key={nextFlower.id}
-                flower={nextFlower}
+                key={stagedFlower.id}
+                flower={stagedFlower}
                 selected={null}
                 reactionKey={reactionKey}
                 motionClassName={
-                  isTransitioning ? styles.cardEntering : styles.cardPreloading
+                  isTransitioning
+                    ? transitionDirection === "backward"
+                      ? styles.cardEnteringLeft
+                      : styles.cardEntering
+                    : styles.cardPreloading
                 }
                 hidden
               />
             )}
           </div>
           <RatingActions
-            selected={selectedRating}
+            selected={displayedRating}
             onSelect={handleRatingSelect}
-            onSkip={handleSkip}
-            disabled={selectedRating !== null || isTransitioning}
-            finishing={isTransitioning && !nextFlower}
+            disabled={navigationDisabled}
+            finishing={
+              isTransitioning &&
+              transitionDirection === "forward" &&
+              !nextFlower
+            }
           />
-          {isTransitioning && !nextFlower && (
+          {isTransitioning && transitionDirection === "forward" && !nextFlower && (
             <div className={styles.completionLayer} aria-live="polite">
               <CompletionCard />
             </div>

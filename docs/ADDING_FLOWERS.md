@@ -27,6 +27,8 @@ public/images/flowers/hydrangea.webp
   latinName: "Hydrangea",
   description:
     "Воздушные соцветия с мягкими переходами оттенков. Символ искренности и тёплых чувств",
+  role: "primary",
+  seasonality: "summer",
   image: "/images/flowers/hydrangea.webp",
   imageAlt: "Пышная голубая гортензия крупным планом",
   // Заполните, если лицензия фотографии требует указать автора:
@@ -44,6 +46,9 @@ public/images/flowers/hydrangea.webp
 - Для общих карточек используйте название рода: `Rosa`, `Tulipa`, `Paeonia`.
 - `imageAlt` описывает то, что видно на фотографии, а не повторяет только название цветка.
 - Описание лучше ограничить одним-двумя короткими предложениями.
+- В `role` укажите основную роль цветка: `primary`, `companion`, `filler` или `accent`.
+- В `seasonality` укажите основную сезонность: `year-round`, `spring`, `summer`, `autumn` или `winter`.
+- Названия и описания ролей и сезонностей находятся в `data/flower-taxonomy.ts`.
 
 Пока фотография не готова, поля `image` и `imageAlt` можно не добавлять — интерфейс покажет серую заглушку.
 
