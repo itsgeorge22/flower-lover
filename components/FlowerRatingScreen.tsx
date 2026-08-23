@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { Check, ChevronLeft, ChevronRight, RefreshCw, Share2, X } from "lucide-react";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { Flower } from "../types/flower";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
+import { flowerRoles, flowerSeasonalities } from "../data/flower-taxonomy";
+import type { Flower, FlowerRoleId, FlowerSeasonalityId } from "../types/flower";
 import styles from "./FlowerRatingScreen.module.css";
 
 type Rating = "dislike" | "neutral" | "like";
@@ -11,11 +12,37 @@ type Answer = Rating | "skipped";
 type SavedAnswers = Record<string, Answer>;
 type PageExit = "survey" | "results";
 type TransitionDirection = "forward" | "backward";
+type FlowerInfoModalDetails = {
+  category: "Роль цветка" | "Сезонность";
+  emoji: string;
+  name: string;
+  description: string;
+};
+type FlowerImageModalDetails = {
+  src: string;
+  alt: string;
+  flowerName: string;
+};
 
 const STORAGE_KEY = "flower-lover-answers";
 const COMPLETION_LOADER_DURATION = 3300;
 const PAGE_EXIT_DURATION = 420;
 const flowerLoaderEmojis = ["🌸", "🌻", "🌷"];
+
+const roleEmojis: Record<FlowerRoleId, string> = {
+  primary: "👑",
+  companion: "🤝",
+  filler: "☁️",
+  accent: "✨",
+};
+
+const seasonalityEmojis: Record<FlowerSeasonalityId, string> = {
+  "year-round": "♾️",
+  spring: "🌱",
+  summer: "☀️",
+  autumn: "🍂",
+  winter: "❄️",
+};
 
 const answerLabels: Record<Answer, string> = {
   dislike: "Не хочу",
@@ -110,11 +137,187 @@ function Progress({
   );
 }
 
+function FlowerInfoModal({
+  details,
+  onClose,
+}: {
+  details: FlowerInfoModalDetails;
+  onClose: () => void;
+}) {
+  const actionButtonRef = useRef<HTMLButtonElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const requestClose = useCallback(() => setIsClosing(true), []);
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    actionButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        requestClose();
+      }
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        actionButtonRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [requestClose]);
+
+  return (
+    <div
+      className={`${styles.infoModalBackdrop} ${
+        isClosing ? styles.infoModalBackdropClosing : ""
+      }`}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          requestClose();
+        }
+      }}
+    >
+      <section
+        className={`${styles.infoModal} ${isClosing ? styles.infoModalClosing : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="flower-info-modal-title"
+        aria-describedby="flower-info-modal-description"
+        onAnimationEnd={(event) => {
+          if (isClosing && event.target === event.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <span className={styles.infoModalEmoji} aria-hidden="true">
+          {details.emoji}
+        </span>
+        <div className={styles.infoModalCopy}>
+          <p className={styles.infoModalCategory}>{details.category}</p>
+          <h2 className={styles.infoModalTitle} id="flower-info-modal-title">
+            {details.name}
+          </h2>
+          <p className={styles.infoModalDescription} id="flower-info-modal-description">
+            {details.description}
+          </p>
+        </div>
+        <button
+          ref={actionButtonRef}
+          type="button"
+          className={styles.infoModalButton}
+          disabled={isClosing}
+          onClick={requestClose}
+        >
+          Понятно
+        </button>
+      </section>
+    </div>
+  );
+}
+
+function FlowerImageModal({
+  details,
+  onClose,
+}: {
+  details: FlowerImageModalDetails;
+  onClose: () => void;
+}) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const requestClose = useCallback(() => setIsClosing(true), []);
+
+  useEffect(() => {
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        requestClose();
+      }
+
+      if (event.key === "Tab") {
+        event.preventDefault();
+        closeButtonRef.current?.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousBodyOverflow;
+      previouslyFocused?.focus();
+    };
+  }, [requestClose]);
+
+  return (
+    <div
+      className={`${styles.infoModalBackdrop} ${
+        isClosing ? styles.infoModalBackdropClosing : ""
+      }`}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) {
+          requestClose();
+        }
+      }}
+    >
+      <section
+        className={`${styles.flowerImageModal} ${
+          isClosing ? styles.flowerImageModalClosing : ""
+        }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Фотография цветка ${details.flowerName}`}
+        onAnimationEnd={(event) => {
+          if (isClosing && event.target === event.currentTarget) {
+            onClose();
+          }
+        }}
+      >
+        <Image
+          className={styles.flowerImageModalPhoto}
+          src={details.src}
+          alt={details.alt}
+          fill
+          sizes="(max-width: 1280px) calc(100vw - 32px), 1280px"
+          priority
+        />
+        <button
+          ref={closeButtonRef}
+          type="button"
+          className={styles.flowerImageModalClose}
+          aria-label="Закрыть фотографию"
+          disabled={isClosing}
+          onClick={requestClose}
+        >
+          <X size={20} strokeWidth={2} aria-hidden="true" />
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function FlowerCard({
   flower,
   selected,
   reactionKey,
   onReactionComplete,
+  onBadgeOpen,
+  onImageOpen,
   motionClassName = "",
   hidden = false,
 }: {
@@ -122,10 +325,16 @@ function FlowerCard({
   selected: Rating | null;
   reactionKey: number;
   onReactionComplete?: () => void;
+  onBadgeOpen?: (details: FlowerInfoModalDetails) => void;
+  onImageOpen?: (details: FlowerImageModalDetails) => void;
   motionClassName?: string;
   hidden?: boolean;
 }) {
   const reaction = ratingOptions.find((option) => option.value === selected);
+  const role = flowerRoles.find((item) => item.id === flower.role);
+  const seasonality = flowerSeasonalities.find(
+    (item) => item.id === flower.seasonality,
+  );
 
   return (
     <article
@@ -148,6 +357,75 @@ function FlowerCard({
             💐
           </span>
         )}
+        <button
+          type="button"
+          className={styles.imageOpenButton}
+          aria-label={`Открыть фотографию цветка ${flower.name}`}
+          disabled={hidden || Boolean(reaction) || !flower.image || !onImageOpen}
+          onClick={() => {
+            if (flower.image) {
+              onImageOpen?.({
+                src: flower.image,
+                alt: flower.imageAlt ?? flower.name,
+                flowerName: flower.name,
+              });
+            }
+          }}
+        />
+        <div className={styles.flowerBadges} aria-label="Характеристики цветка">
+          <button
+            type="button"
+            className={styles.flowerBadge}
+            disabled={hidden || Boolean(reaction) || !role || !onBadgeOpen}
+            onClick={() => {
+              if (role) {
+                onBadgeOpen?.({
+                  category: "Роль цветка",
+                  emoji: roleEmojis[flower.role],
+                  name: role.name,
+                  description: role.description,
+                });
+              }
+            }}
+          >
+            <span className={styles.flowerBadgeEmoji} aria-hidden="true">
+              {roleEmojis[flower.role]}
+            </span>
+            {role?.name ?? flower.role}
+            <ChevronRight
+              className={styles.flowerBadgeActionIcon}
+              size={14}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
+          </button>
+          <button
+            type="button"
+            className={styles.flowerBadge}
+            disabled={hidden || Boolean(reaction) || !seasonality || !onBadgeOpen}
+            onClick={() => {
+              if (seasonality) {
+                onBadgeOpen?.({
+                  category: "Сезонность",
+                  emoji: seasonalityEmojis[flower.seasonality],
+                  name: seasonality.name,
+                  description: seasonality.description,
+                });
+              }
+            }}
+          >
+            <span className={styles.flowerBadgeEmoji} aria-hidden="true">
+              {seasonalityEmojis[flower.seasonality]}
+            </span>
+            {seasonality?.name ?? flower.seasonality}
+            <ChevronRight
+              className={styles.flowerBadgeActionIcon}
+              size={14}
+              strokeWidth={2.25}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
         {reaction && (
           <div
             key={`${reaction.value}-${reactionKey}`}
@@ -419,6 +697,10 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   const [storageReady, setStorageReady] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [pageExit, setPageExit] = useState<PageExit | null>(null);
+  const [flowerInfoModal, setFlowerInfoModal] =
+    useState<FlowerInfoModalDetails | null>(null);
+  const [flowerImageModal, setFlowerImageModal] =
+    useState<FlowerImageModalDetails | null>(null);
 
   const currentFlower = flowers[currentFlowerIndex];
   const hasNextFlower = currentFlowerIndex < flowers.length - 1;
@@ -445,6 +727,8 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
       : null;
   const displayedRating = selectedRating ?? savedCurrentRating;
   const navigationDisabled = selectedRating !== null || isTransitioning;
+  const closeFlowerInfoModal = useCallback(() => setFlowerInfoModal(null), []);
+  const closeFlowerImageModal = useCallback(() => setFlowerImageModal(null), []);
 
   useEffect(() => {
     try {
@@ -636,6 +920,8 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
               selected={selectedRating}
               reactionKey={reactionKey}
               onReactionComplete={handleReactionComplete}
+              onBadgeOpen={isTransitioning ? undefined : setFlowerInfoModal}
+              onImageOpen={isTransitioning ? undefined : setFlowerImageModal}
               motionClassName={
                 isTransitioning
                   ? transitionDirection === "backward"
@@ -678,6 +964,12 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
           )}
         </div>
       </div>
+      {flowerInfoModal && (
+        <FlowerInfoModal details={flowerInfoModal} onClose={closeFlowerInfoModal} />
+      )}
+      {flowerImageModal && (
+        <FlowerImageModal details={flowerImageModal} onClose={closeFlowerImageModal} />
+      )}
     </main>
   );
 }
