@@ -1306,7 +1306,7 @@
   margin-right: -16px;
   margin-bottom: -16px;
   margin-left: -16px;
-  padding-bottom: 16px;
+  padding-top: 16px;
   background: linear-gradient(
     180deg,
     #faf8f9 0%,
@@ -1332,8 +1332,8 @@
 .resultsFiltersEdge {
   position: absolute;
   z-index: 2;
-  top: 0;
-  bottom: 16px;
+  top: 16px;
+  bottom: 0;
   width: 32px;
   opacity: 0;
   pointer-events: none;
