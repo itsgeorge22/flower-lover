@@ -1321,8 +1321,15 @@
   padding: 0 16px 4px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
+  cursor: grab;
+  user-select: none;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+
+.resultsFiltersDragging,
+.resultsFiltersDragging * {
+  cursor: grabbing;
 }
 
 .resultsFilters::-webkit-scrollbar {
