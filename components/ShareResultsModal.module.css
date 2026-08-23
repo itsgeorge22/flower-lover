@@ -77,13 +77,12 @@
 
 .preview {
   position: relative;
-  width: min(100%, 346px);
+  width: 100%;
   aspect-ratio: 4 / 5;
   align-self: center;
   overflow: hidden;
   border-radius: 22px;
   background: #faf8f9;
-  box-shadow: 0 14px 36px rgba(58, 34, 48, 0.16);
 }
 
 .previewImage {
@@ -163,9 +162,6 @@
     padding: 16px;
   }
 
-  .preview {
-    width: min(100%, 280px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
