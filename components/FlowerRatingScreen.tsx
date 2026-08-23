@@ -76,26 +76,47 @@ const ratingOptions: Array<{
   label: string;
   icon: string;
   filterColor: string;
+  particleColor: string;
 }> = [
   {
     value: "dislike",
     label: "Не хочу",
     icon: "☹️",
     filterColor: "rgba(90, 64, 157, 0.32)",
+    particleColor: "#5a409d",
   },
   {
     value: "neutral",
     label: "Иногда",
     icon: "😐",
     filterColor: "rgba(211, 105, 0, 0.32)",
+    particleColor: "#d36900",
   },
   {
     value: "like",
     label: "Хочу",
     icon: "😍",
     filterColor: "rgba(255, 64, 128, 0.32)",
+    particleColor: "#ff4080",
   },
 ];
+
+const reactionParticleLayout = [
+  { left: "2%", top: "18%", x: "-30px", y: "-24px", delay: "0ms", rotate: "-18deg" },
+  { left: "98%", top: "24%", x: "28px", y: "-22px", delay: "45ms", rotate: "20deg" },
+  { left: "1%", top: "50%", x: "-32px", y: "-4px", delay: "90ms", rotate: "-24deg" },
+  { left: "99%", top: "56%", x: "30px", y: "-2px", delay: "20ms", rotate: "18deg" },
+  { left: "18%", top: "98%", x: "-14px", y: "28px", delay: "70ms", rotate: "-16deg" },
+  { left: "42%", top: "99%", x: "-4px", y: "32px", delay: "10ms", rotate: "12deg" },
+  { left: "68%", top: "99%", x: "10px", y: "30px", delay: "110ms", rotate: "-12deg" },
+  { left: "90%", top: "96%", x: "22px", y: "24px", delay: "55ms", rotate: "22deg" },
+] as const;
+
+const reactionParticleSymbols: Record<Rating, readonly string[]> = {
+  dislike: ["●", "☁", "·", "●", "☁", "·", "●", "☁"],
+  neutral: ["✦", "●", "✦", "·", "✦", "○", "✦", "·"],
+  like: ["♥", "✦", "♥", "·", "♥", "✦", "♥", "·"],
+};
 
 function AnimatedProgressNumber({ value }: { value: number }) {
   const lastValueRef = useRef(value);
@@ -534,6 +555,41 @@ function FlowerCard({
         <p className={styles.description}>{flower.description}</p>
       </div>
     </article>
+  );
+}
+
+function CardReactionParticles({ rating }: { rating: Rating }) {
+  const reaction = ratingOptions.find((option) => option.value === rating);
+
+  if (!reaction) {
+    return null;
+  }
+
+  return (
+    <div
+      className={styles.cardReactionParticles}
+      style={{ "--reaction-particle-color": reaction.particleColor } as CSSProperties}
+      aria-hidden="true"
+    >
+      {reactionParticleLayout.map((particle, index) => (
+        <span
+          className={styles.cardReactionParticle}
+          style={
+            {
+              left: particle.left,
+              top: particle.top,
+              "--particle-x": particle.x,
+              "--particle-y": particle.y,
+              "--particle-delay": particle.delay,
+              "--particle-rotation": particle.rotate,
+            } as CSSProperties
+          }
+          key={`${particle.left}-${particle.top}`}
+        >
+          {reactionParticleSymbols[rating][index]}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -1219,6 +1275,12 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
                   : ""
               }
             />
+            {selectedRating && (
+              <CardReactionParticles
+                key={`${selectedRating}-${reactionKey}`}
+                rating={selectedRating}
+              />
+            )}
             {stagedFlower && (
               <FlowerCard
                 key={stagedFlower.id}

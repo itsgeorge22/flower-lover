@@ -362,6 +362,56 @@
     0 165px 33px rgba(0, 0, 0, 0.01);
 }
 
+.cardReactionParticles {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  overflow: visible;
+  color: var(--reaction-particle-color);
+  pointer-events: none;
+}
+
+.cardReactionParticle {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  filter: drop-shadow(0 4px 8px rgba(23, 18, 22, 0.12));
+  animation: cardReactionParticle 720ms cubic-bezier(0.2, 0.75, 0.3, 1) both;
+  animation-delay: var(--particle-delay);
+  will-change: transform, opacity;
+}
+
+.cardReactionParticle:nth-child(3n) {
+  font-size: 14px;
+}
+
+.cardReactionParticle:nth-child(4n + 2) {
+  font-size: 21px;
+}
+
+@keyframes cardReactionParticle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.3) rotate(0);
+  }
+
+  28% {
+    opacity: 0.92;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--particle-x)),
+        calc(-50% + var(--particle-y))
+      )
+      scale(1.18) rotate(var(--particle-rotation));
+  }
+}
+
 .cardLeaving {
   z-index: 2;
   transform-origin: 50% 85%;
@@ -965,6 +1015,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .cardReactionParticles {
+    display: none;
+  }
+
   .infoModalBackdrop,
   .infoModal,
   .flowerImageModal,
