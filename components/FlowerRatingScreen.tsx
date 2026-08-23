@@ -703,20 +703,10 @@ function CompletionCard() {
             )}
           </span>
         ))}
-        <div className={styles.completionPetals} aria-hidden="true">
-          <span>♥</span>
-          <span>✦</span>
-          <span>♥</span>
-          <span>✦</span>
-          <span>♥</span>
-          <span>✦</span>
-        </div>
       </div>
       <div className={styles.completionCopy}>
-        <h1 className={styles.completionTitle}>Все цветы оценены 🌸</h1>
-        <p className={styles.completionDescription}>
-          Твой цветочный вкус готов — собираем всё в один букет
-        </p>
+        <h1 className={styles.completionTitle}>Все цветы оценены</h1>
+        <p className={styles.completionDescription}>Собираем твои ответы в один список</p>
       </div>
     </article>
   );
