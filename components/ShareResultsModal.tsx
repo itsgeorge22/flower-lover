@@ -5,7 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./ShareResultsModal.module.css";
 
 type ShareResultsModalProps = {
-  imageBlob: Blob;
+  pdfBlob: Blob;
+  pdfUrl: string;
   imageUrl: string;
   shareText: string;
   onClose: () => void;
@@ -13,10 +14,11 @@ type ShareResultsModalProps = {
 };
 
 const CLOSE_DURATION = 220;
-const FILE_NAME = "flower-lover-results.png";
+const FILE_NAME = "flower-lover-results.pdf";
 
 export function ShareResultsModal({
-  imageBlob,
+  pdfBlob,
+  pdfUrl,
   imageUrl,
   shareText,
   onClose,
@@ -56,9 +58,9 @@ export function ShareResultsModal({
     };
   }, [closeModal]);
 
-  const downloadImage = () => {
+  const downloadPdf = () => {
     const link = document.createElement("a");
-    link.href = imageUrl;
+    link.href = pdfUrl;
     link.download = FILE_NAME;
     document.body.append(link);
     link.click();
@@ -66,8 +68,8 @@ export function ShareResultsModal({
   };
 
   const handleDownload = () => {
-    downloadImage();
-    onNotify("success", "Карточка сохранена");
+    downloadPdf();
+    onNotify("success", "Скачивание PDF началось");
   };
 
   const handleShare = async () => {
@@ -76,7 +78,7 @@ export function ShareResultsModal({
     }
 
     setIsSharing(true);
-    const file = new File([imageBlob], FILE_NAME, { type: "image/png" });
+    const file = new File([pdfBlob], FILE_NAME, { type: "application/pdf" });
 
     try {
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -89,19 +91,14 @@ export function ShareResultsModal({
         return;
       }
 
-      await navigator.clipboard.writeText(shareText);
-      onNotify("success", "Список скопирован — изображение можно скачать ниже");
+      downloadPdf();
+      onNotify("success", "PDF скачивается — прикрепи его к сообщению");
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
 
-      try {
-        await navigator.clipboard.writeText(shareText);
-        onNotify("success", "Список скопирован — изображение можно скачать ниже");
-      } catch {
-        onNotify("error", "Не удалось открыть меню отправки");
-      }
+      onNotify("error", "Не удалось отправить PDF — скачай файл и прикрепи к сообщению");
     } finally {
       setIsSharing(false);
     }
@@ -128,7 +125,7 @@ export function ShareResultsModal({
             <h2 id="share-results-title" className={styles.title}>
               Поделись результатом
             </h2>
-            <p className={styles.description}>Красивая карточка уже готова</p>
+            <p className={styles.description}>PDF с полным списком цветов готов</p>
           </div>
           <button
             ref={closeButtonRef}
@@ -142,7 +139,7 @@ export function ShareResultsModal({
         </header>
 
         <div className={styles.preview}>
-          {/* Blob URLs are generated locally and do not benefit from Next Image optimization. */}
+          {/* The original image remains the preview; the actions share the complete PDF. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className={styles.previewImage}
@@ -170,7 +167,7 @@ export function ShareResultsModal({
             className={`${styles.actionButton} ${styles.secondaryButton}`}
             onClick={handleDownload}
           >
-            <span>Скачать изображение</span>
+            <span>Скачать PDF-файл</span>
             <Download size={18} aria-hidden="true" />
           </button>
         </div>

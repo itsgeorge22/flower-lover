@@ -13,6 +13,7 @@
     "generate:flowers": "node --env-file=.env.local scripts/generate-flowers.mjs"
   },
   "dependencies": {
+    "jspdf": "^4.2.1",
     "lucide-react": "^1.33.0",
     "next": "16.3.2",
     "openai": "^7.5.0",

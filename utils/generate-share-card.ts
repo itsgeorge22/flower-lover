@@ -1,4 +1,5 @@
 import type { Flower } from "../types/flower";
+import type { ShareResultsGroup } from "./share-results";
 
 export type ShareCardAnswer = "dislike" | "neutral" | "like" | "skipped";
 
@@ -161,6 +162,7 @@ function drawFlowerCard(
   y: number,
   width: number,
   height: number,
+  fullNames = false,
 ) {
   const imageHeight = 224;
   const meta = answer === "skipped" ? null : answerMeta[answer];
@@ -186,24 +188,43 @@ function drawFlowerCard(
 
   context.fillStyle = "#9e929c";
   context.font = '400 18px Rubik, sans-serif';
+  if (fullNames) {
+    const scale = Math.min(1, (width - 46) / context.measureText(flower.latinName).width);
+    context.font = `400 ${18 * scale}px Rubik, sans-serif`;
+  }
   drawTextWithLimit(context, flower.latinName, x + 22, y + 262, width - 44);
 
   context.fillStyle = "#171216";
   context.font = '500 25px Rubik, sans-serif';
+  if (fullNames) {
+    const scale = Math.min(1, (width - 46) / context.measureText(flower.name).width);
+    context.font = `500 ${25 * scale}px Rubik, sans-serif`;
+  }
   drawTextWithLimit(context, flower.name, x + 22, y + 296, width - 44);
 
   if (meta) {
+    const leftPadding = 12;
+    const rightPadding = leftPadding * 2;
+    const emojiGap = 10;
+    const badgeHeight = 44;
+    const inset = 14;
+    context.save();
     context.font = '500 18px Rubik, sans-serif';
     const labelWidth = context.measureText(meta.label).width;
-    const badgeWidth = Math.ceil(labelWidth + 62);
-    roundedRect(context, x + 20, y + height - 50, badgeWidth, 34, 17);
+    context.font = '20px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    const emojiWidth = context.measureText(meta.emoji).width;
+    const badgeWidth = leftPadding + emojiWidth + emojiGap + labelWidth + rightPadding;
+    const badgeX = x + width - inset - badgeWidth;
+    const badgeY = y + inset;
+    roundedRect(context, badgeX, badgeY, badgeWidth, badgeHeight, badgeHeight / 2);
     context.fillStyle = meta.background;
     context.fill();
-    context.font = '18px "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
     context.fillStyle = meta.color;
-    context.fillText(meta.emoji, x + 31, y + height - 27);
+    context.textBaseline = "middle";
+    context.fillText(meta.emoji, badgeX + leftPadding, badgeY + badgeHeight / 2 + 1);
     context.font = '500 18px Rubik, sans-serif';
-    context.fillText(meta.label, x + 55, y + height - 26);
+    context.fillText(meta.label, badgeX + leftPadding + emojiWidth + emojiGap, badgeY + badgeHeight / 2 + 1);
+    context.restore();
   }
 }
 
@@ -219,25 +240,7 @@ function canvasToBlob(canvas: HTMLCanvasElement) {
   });
 }
 
-export async function generateFlowerShareCard(
-  flowers: readonly Flower[],
-  answers: Readonly<Record<string, ShareCardAnswer>>,
-) {
-  await document.fonts.ready;
-
-  const counts = {
-    like: flowers.filter((flower) => answers[flower.id] === "like").length,
-    neutral: flowers.filter((flower) => answers[flower.id] === "neutral").length,
-    dislike: flowers.filter((flower) => answers[flower.id] === "dislike").length,
-  };
-  const ratedFlowers = flowers.filter((flower) => answers[flower.id] !== "skipped");
-  const likedFlowers = flowers.filter((flower) => answers[flower.id] === "like");
-  const featuredSource = likedFlowers.length > 0 ? likedFlowers : ratedFlowers.length > 0 ? ratedFlowers : flowers;
-  const featuredFlowers = featuredSource.slice(0, 6);
-  const loadedImages = await Promise.all(
-    featuredFlowers.map((flower) => (flower.image ? loadImage(flower.image) : Promise.resolve(null))),
-  );
-
+function createShareCanvas() {
   const canvas = document.createElement("canvas");
   canvas.width = CARD_WIDTH;
   canvas.height = CARD_HEIGHT;
@@ -273,52 +276,98 @@ export async function generateFlowerShareCard(
   context.font = '500 24px Rubik, sans-serif';
   context.fillText("FlowerLover", PAGE_PADDING + logoEmojiWidth + 4, 78);
 
+  return { canvas, context };
+}
+
+type ShareCardPageOptions = {
+  featuredFlowers: readonly Flower[];
+  title: string;
+  subtitle?: string;
+  footer?: string;
+  hiddenLabel?: string;
+  fullNames?: boolean;
+  showSummary?: boolean;
+  category?: ShareResultsGroup;
+};
+
+// The modal image and every PDF page share this renderer so their cards stay identical.
+export async function renderFlowerShareCard(
+  flowers: readonly Flower[],
+  answers: Readonly<Record<string, ShareCardAnswer>>,
+  options: ShareCardPageOptions,
+) {
+  await document.fonts.ready;
+  const counts = {
+    like: flowers.filter((flower) => answers[flower.id] === "like").length,
+    neutral: flowers.filter((flower) => answers[flower.id] === "neutral").length,
+    dislike: flowers.filter((flower) => answers[flower.id] === "dislike").length,
+  };
+  const { featuredFlowers } = options;
+  const loadedImages = await Promise.all(
+    featuredFlowers.map((flower) => (flower.image ? loadImage(flower.image) : Promise.resolve(null))),
+  );
+
+  const { canvas, context } = createShareCanvas();
+
   context.fillStyle = "#171216";
   context.font = '500 50px Rubik, sans-serif';
   context.fillText(
-    likedFlowers.length > 0 ? "Мои любимые цветы" : "Мои цветочные предпочтения",
+    options.title,
     PAGE_PADDING,
     148,
   );
 
   context.fillStyle = "#70666e";
   context.font = '400 23px Rubik, sans-serif';
-  context.fillText("Маленькая карта моих цветочных симпатий", PAGE_PADDING, 190);
+  context.fillText(options.category?.description ?? options.subtitle ?? "Маленькая карта моих цветочных симпатий", PAGE_PADDING, 190);
 
-  const pillGap = 18;
-  const pillWidth = (CARD_WIDTH - PAGE_PADDING * 2 - pillGap * 2) / 3;
-  drawSummaryPill(
-    context,
-    PAGE_PADDING,
-    224,
-    pillWidth,
-    "Хочу",
-    counts.like,
-    answerMeta.like.color,
-    answerMeta.like.background,
-  );
-  drawSummaryPill(
-    context,
-    PAGE_PADDING + pillWidth + pillGap,
-    224,
-    pillWidth,
-    "Иногда",
-    counts.neutral,
-    answerMeta.neutral.color,
-    answerMeta.neutral.background,
-  );
-  drawSummaryPill(
-    context,
-    PAGE_PADDING + (pillWidth + pillGap) * 2,
-    224,
-    pillWidth,
-    "Не хочу",
-    counts.dislike,
-    answerMeta.dislike.color,
-    answerMeta.dislike.background,
-  );
+  const showSummary = options.showSummary ?? true;
+  if (options.category) {
+    const category = options.category;
+    drawSummaryPill(context, PAGE_PADDING, 224, 360, category.label,
+      category.flowers.length, category.color, category.background);
+    context.fillStyle = "#70666e";
+    context.font = '400 23px Rubik, sans-serif';
+    context.textAlign = "right";
+    context.fillText(options.subtitle ?? "", CARD_WIDTH - PAGE_PADDING, 275);
+    context.textAlign = "left";
+  } else if (showSummary) {
+    const pillGap = 18;
+    const pillWidth = (CARD_WIDTH - PAGE_PADDING * 2 - pillGap * 2) / 3;
+    drawSummaryPill(
+      context,
+      PAGE_PADDING,
+      224,
+      pillWidth,
+      "Хочу",
+      counts.like,
+      answerMeta.like.color,
+      answerMeta.like.background,
+    );
+    drawSummaryPill(
+      context,
+      PAGE_PADDING + pillWidth + pillGap,
+      224,
+      pillWidth,
+      "Иногда",
+      counts.neutral,
+      answerMeta.neutral.color,
+      answerMeta.neutral.background,
+    );
+    drawSummaryPill(
+      context,
+      PAGE_PADDING + (pillWidth + pillGap) * 2,
+      224,
+      pillWidth,
+      "Не хочу",
+      counts.dislike,
+      answerMeta.dislike.color,
+      answerMeta.dislike.background,
+    );
 
-  const gridTop = 344;
+  }
+
+  const gridTop = showSummary || options.category ? 344 : 224;
   const gridGap = 24;
   const cardWidth = (CARD_WIDTH - PAGE_PADDING * 2 - gridGap * 2) / 3;
   const cardHeight = 376;
@@ -335,6 +384,7 @@ export async function generateFlowerShareCard(
       gridTop + row * (cardHeight + gridGap),
       cardWidth,
       cardHeight,
+      options.fullNames,
     );
   });
 
@@ -348,18 +398,110 @@ export async function generateFlowerShareCard(
     context.textAlign = "left";
   }
 
-  const hiddenCount = Math.max(0, featuredSource.length - featuredFlowers.length);
   context.textAlign = "center";
-  if (hiddenCount > 0) {
+  if (options.hiddenLabel) {
     context.fillStyle = "#554c53";
     context.font = '500 22px Rubik, sans-serif';
-    context.fillText(`+ ещё ${hiddenCount} ${likedFlowers.length > 0 ? "любимых цветов" : "цветов"}`, CARD_WIDTH / 2, 1197);
+    context.fillText(options.hiddenLabel, CARD_WIDTH / 2, 1197);
   }
 
   context.fillStyle = "#9e929c";
   context.font = '400 19px Rubik, sans-serif';
-  context.fillText("Создано в FlowerLover", CARD_WIDTH / 2, 1274);
+  context.fillText(options.footer ?? "Создано в FlowerLover", CARD_WIDTH / 2, 1274);
   context.textAlign = "left";
 
+  return canvas;
+}
+
+export async function generateFlowerShareCard(
+  flowers: readonly Flower[],
+  answers: Readonly<Record<string, ShareCardAnswer>>,
+) {
+  const ratedFlowers = flowers.filter((flower) => answers[flower.id] !== "skipped");
+  const likedFlowers = flowers.filter((flower) => answers[flower.id] === "like");
+  const featuredSource = likedFlowers.length > 0 ? likedFlowers : ratedFlowers.length > 0 ? ratedFlowers : flowers;
+  const featuredFlowers = featuredSource.slice(0, 6);
+  const hiddenCount = Math.max(0, featuredSource.length - featuredFlowers.length);
+  const canvas = await renderFlowerShareCard(flowers, answers, {
+    featuredFlowers,
+    title: likedFlowers.length > 0 ? "Мои любимые цветы" : "Мои цветочные предпочтения",
+    hiddenLabel: hiddenCount > 0
+      ? `+ ещё ${hiddenCount} ${likedFlowers.length > 0 ? "любимых цветов" : "цветов"}`
+      : undefined,
+  });
   return canvasToBlob(canvas);
+}
+
+
+export type ShareCoverSection = ShareResultsGroup & {
+  firstPage: number | null;
+  lastPage: number | null;
+};
+
+export async function renderFlowerShareCover(sections: ShareCoverSection[], pageCount: number) {
+  await document.fonts.ready;
+  const { canvas, context } = createShareCanvas();
+  const total = sections.reduce((sum, section) => sum + section.flowers.length, 0);
+
+  context.fillStyle = "#9e929c";
+  context.font = '500 20px Rubik, sans-serif';
+  context.fillText("МОЯ КАРТА ЦВЕТОВ", PAGE_PADDING, 163);
+  context.fillStyle = "#171216";
+  context.font = '500 68px Rubik, sans-serif';
+  context.fillText("Мои цветочные", PAGE_PADDING, 252);
+  context.fillText("предпочтения", PAGE_PADDING, 332);
+  context.fillStyle = "#70666e";
+  context.font = '400 25px Rubik, sans-serif';
+  context.fillText("Небольшая подсказка для букета, который порадует", PAGE_PADDING, 388);
+
+  const pillGap = 18;
+  const pillWidth = (CARD_WIDTH - PAGE_PADDING * 2 - pillGap * 2) / 3;
+  sections.slice(0, 3).forEach((section, index) => {
+    drawSummaryPill(context, PAGE_PADDING + index * (pillWidth + pillGap), 436,
+      pillWidth, section.label, section.flowers.length, section.color, section.background);
+  });
+
+  context.fillStyle = "#171216";
+  context.font = '500 28px Rubik, sans-serif';
+  context.fillText("Что внутри", PAGE_PADDING, 592);
+  context.textAlign = "right";
+  context.fillStyle = "#70666e";
+  context.font = '400 22px Rubik, sans-serif';
+  context.fillText(`Всего цветов: ${total}`, CARD_WIDTH - PAGE_PADDING, 592);
+  context.textAlign = "left";
+
+  sections.forEach((section, index) => {
+    const y = 626 + index * 124;
+    roundedRect(context, PAGE_PADDING, y, CARD_WIDTH - PAGE_PADDING * 2, 108, 26);
+    context.fillStyle = "#ffffff";
+    context.fill();
+    roundedRect(context, PAGE_PADDING + 24, y + 24, 6, 60, 3);
+    context.fillStyle = section.color;
+    context.fill();
+    context.font = '500 26px Rubik, sans-serif';
+    context.fillText(section.label, PAGE_PADDING + 50, y + 43);
+    context.fillStyle = "#70666e";
+    context.font = '400 20px Rubik, sans-serif';
+    context.fillText(section.description, PAGE_PADDING + 50, y + 77);
+    context.textAlign = "right";
+    context.font = '500 22px Rubik, sans-serif';
+    context.fillStyle = section.color;
+    const pages = section.firstPage === null ? "Нет цветов"
+      : section.firstPage === section.lastPage ? `стр. ${section.firstPage}`
+      : `стр. ${section.firstPage}–${section.lastPage}`;
+    context.fillText(pages, CARD_WIDTH - PAGE_PADDING - 28, y + 44);
+    context.font = '400 18px Rubik, sans-serif';
+    context.fillStyle = "#9e929c";
+    context.fillText(`Цветов: ${section.flowers.length}`, CARD_WIDTH - PAGE_PADDING - 28, y + 76);
+    context.textAlign = "left";
+  });
+
+  context.fillStyle = "#70666e";
+  context.font = '400 23px Rubik, sans-serif';
+  context.fillText("Сохрани этот список или поделись им с близкими", PAGE_PADDING, 1180);
+  context.fillStyle = "#9e929c";
+  context.font = '400 19px Rubik, sans-serif';
+  context.textAlign = "center";
+  context.fillText(`Создано в FlowerLover · 1 / ${pageCount}`, CARD_WIDTH / 2, 1274);
+  return canvas;
 }

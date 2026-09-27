@@ -1587,7 +1587,12 @@
   overflow: hidden;
   border-radius: 16px;
   background: #e7e1e6;
+  padding: 0;
+  border: 0;
+  cursor: zoom-in;
 }
+
+.resultThumbnail:disabled { cursor: default; }
 
 .resultThumbnailImage {
   object-fit: cover;
@@ -1640,7 +1645,76 @@
   font-weight: 500;
   line-height: 16px;
   white-space: nowrap;
+  cursor: pointer;
+  min-height: 40px;
 }
+
+.resultAnswer:focus-visible,
+.resultThumbnail:focus-visible,
+.editRatingOption:focus-visible,
+.reviewSkippedButton:focus-visible,
+.reviewHeader button:focus-visible {
+  outline: 3px solid rgba(255, 64, 128, 0.5);
+  outline-offset: 3px;
+}
+
+.editRatingOption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 1px solid;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.editRatingOption > span { font-size: 24px; }
+.editRatingOption[aria-pressed="true"] { box-shadow: inset 0 0 0 1px currentColor; }
+
+.reviewSkippedButton {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 14px;
+  color: #554c53;
+  background: #eee8eb;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.reviewHeader {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px 12px;
+  color: #70666e;
+  font-size: 12px;
+}
+
+.reviewHeader button {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 10px;
+  color: #554c53;
+  background: #eee8eb;
+  cursor: pointer;
+}
+
+.reviewHeader button:disabled { opacity: 0.5; cursor: default; }
 
 .resultAnswerEmoji {
   display: block;

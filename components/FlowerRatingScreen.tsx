@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   LoaderCircle,
@@ -22,14 +23,17 @@ import { flowerRoles, flowerSeasonalities } from "../data/flower-taxonomy";
 import { flowerLoaderEmojis } from "../data/flower-loader";
 import type { Flower, FlowerRoleId, FlowerSeasonalityId } from "../types/flower";
 import { generateFlowerShareCard } from "../utils/generate-share-card";
+import { generateFlowerSharePdf } from "../utils/generate-share-pdf";
+import { groupShareResults } from "../utils/share-results";
 import styles from "./FlowerRatingScreen.module.css";
 import { ShareResultsModal } from "./ShareResultsModal";
+import { ResultActionDialog } from "./ResultActionDialog";
 
 type Rating = "dislike" | "neutral" | "like";
 type Answer = Rating | "skipped";
 type ResultFilter = "all" | Answer;
 type SavedAnswers = Record<string, Answer>;
-type PageExit = "survey" | "results";
+type PageExit = "survey" | "results" | "review";
 type TransitionDirection = "forward" | "backward";
 type FlowerInfoModalDetails = {
   category: "Роль цветка" | "Сезонность";
@@ -696,7 +700,7 @@ function RatingActions({
   );
 }
 
-function CompletionCard() {
+function CompletionCard({ rated, skipped }: { rated: number; skipped: number }) {
   return (
     <article className={`${styles.card} ${styles.completionCard} ${styles.cardEntering}`}>
       <div className={styles.flowerEmojiStage} aria-hidden="true">
@@ -715,8 +719,8 @@ function CompletionCard() {
         ))}
       </div>
       <div className={styles.completionCopy}>
-        <h1 className={styles.completionTitle}>Все цветы оценены</h1>
-        <p className={styles.completionDescription}>Собираем твои ответы в один список</p>
+        <h1 className={styles.completionTitle}>Твой список готов</h1>
+        <p className={styles.completionDescription}>Оценено: {rated} · Пропущено: {skipped}</p>
       </div>
     </article>
   );
@@ -726,19 +730,27 @@ function ResultsView({
   flowers,
   answers,
   onRestart,
+  onAnswerChange,
+  onReviewSkipped,
 }: {
   flowers: readonly Flower[];
   answers: SavedAnswers;
   onRestart: () => void;
+  onAnswerChange: (flowerId: string, answer: Answer) => void;
+  onReviewSkipped: () => void;
 }) {
   const [toast, setToast] = useState<{
     id: number;
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [editingFlower, setEditingFlower] = useState<Flower | null>(null);
+  const [resultPhoto, setResultPhoto] = useState<FlowerImageModalDetails | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const closeResultPhoto = useCallback(() => setResultPhoto(null), []);
   const [activeFilter, setActiveFilter] = useState<ResultFilter>("all");
-  const [shareCard, setShareCard] = useState<{ blob: Blob; url: string } | null>(null);
-  const [shareCardLoading, setShareCardLoading] = useState(false);
+  const [sharePdf, setSharePdf] = useState<{ blob: Blob; url: string; imageUrl: string } | null>(null);
+  const [sharePdfLoading, setSharePdfLoading] = useState(false);
   const resultsFiltersRef = useRef<HTMLDivElement>(null);
   const [filterEdges, setFilterEdges] = useState({ left: false, right: false });
   const [filtersDragging, setFiltersDragging] = useState(false);
@@ -863,49 +875,61 @@ function ResultsView({
 
   useEffect(() => {
     return () => {
-      if (shareCard) {
-        URL.revokeObjectURL(shareCard.url);
+      if (sharePdf) {
+        URL.revokeObjectURL(sharePdf.url);
+        URL.revokeObjectURL(sharePdf.imageUrl);
       }
     };
-  }, [shareCard]);
+  }, [sharePdf]);
 
   const showToast = (type: "success" | "error", message: string) => {
     setToast({ id: Date.now(), type, message });
   };
 
+  const shareGroups = groupShareResults(flowers, answers);
   const shareText = [
     "Мои цветочные предпочтения:",
-    ...flowers.map((flower) => `• ${flower.name} — ${answerLabels[answers[flower.id]]}`),
+    ...shareGroups.flatMap((group) => group.flowers.map((flower) => `• ${flower.name} — ${group.label}`)),
     "",
     "Сделано в FlowerLover 🌸",
     "https://flowerlover.fun",
   ].join("\n");
 
   const handleShare = async () => {
-    if (shareCardLoading) {
+    if (sharePdfLoading) {
       return;
     }
 
-    setShareCardLoading(true);
+    setSharePdfLoading(true);
 
     try {
-      const blob = await generateFlowerShareCard(flowers, answers);
-      setShareCard({ blob, url: URL.createObjectURL(blob) });
+      const [blob, imageBlob] = await Promise.all([
+        generateFlowerSharePdf(flowers, answers),
+        generateFlowerShareCard(flowers, answers),
+      ]);
+      setSharePdf({ blob, url: URL.createObjectURL(blob), imageUrl: URL.createObjectURL(imageBlob) });
     } catch {
-      showToast("error", "Не удалось создать карточку результата");
+      showToast("error", "Не удалось создать PDF-файл");
     } finally {
-      setShareCardLoading(false);
+      setSharePdfLoading(false);
     }
   };
 
   return (
     <section className={styles.results}>
       <header className={styles.resultsHeader}>
-        <h1 className={styles.resultsTitle}>Твои результаты</h1>
+        <h1 id="results-title" tabIndex={-1} className={styles.resultsTitle}>Твои результаты</h1>
         <p className={styles.resultsDescription}>
-          Сохрани этот список или поделись им с близкими
+          Оценено: {flowers.length - filterCounts.skipped} · Пропущено: {filterCounts.skipped}
         </p>
       </header>
+
+      {filterCounts.skipped > 0 && (
+        <button type="button" className={styles.reviewSkippedButton} onClick={onReviewSkipped}>
+          Оценить пропущенные <span>{filterCounts.skipped}</span>
+          <ChevronRight size={16} aria-hidden="true" />
+        </button>
+      )}
 
       <div className={styles.resultsFiltersShell}>
         <div
@@ -984,7 +1008,10 @@ function ResultsView({
 
           return (
             <article className={styles.resultCard} key={flower.id}>
-              <div className={styles.resultThumbnail}>
+              <button type="button" className={styles.resultThumbnail}
+                aria-label={`Открыть фотографию цветка ${flower.name}`}
+                disabled={!flower.image}
+                onClick={() => { if (flower.image) setResultPhoto({ src: flower.image, alt: flower.imageAlt ?? flower.name, flowerName: flower.name, latinName: flower.latinName }); }}>
                 {flower.image ? (
                   <Image
                     src={flower.image}
@@ -998,12 +1025,15 @@ function ResultsView({
                     💐
                   </span>
                 )}
-              </div>
+              </button>
               <div className={styles.resultFlower}>
                 <span className={styles.resultLatinName}>{flower.latinName}</span>
                 <strong>{flower.name}</strong>
               </div>
-              <span
+              <button type="button"
+                aria-label={`Изменить оценку: ${flower.name} — ${answerLabels[answer]}`}
+                aria-haspopup="dialog"
+                onClick={() => setEditingFlower(flower)}
                 className={`${styles.resultAnswer} ${
                   answer === "skipped" ? styles.skipped : styles[answer]
                 }`}
@@ -1014,7 +1044,8 @@ function ResultsView({
                   </span>
                 )}
                 {answerLabels[answer]}
-              </span>
+                <ChevronDown size={12} aria-hidden="true" />
+              </button>
             </article>
           );
         })}
@@ -1028,12 +1059,12 @@ function ResultsView({
           <button
             type="button"
             className={styles.shareButton}
-            disabled={shareCardLoading}
-            aria-busy={shareCardLoading}
+            disabled={sharePdfLoading}
+            aria-busy={sharePdfLoading}
             onClick={handleShare}
           >
-            <span>{shareCardLoading ? "Создаём карточку…" : "Поделиться"}</span>
-            {shareCardLoading ? (
+            <span>{sharePdfLoading ? "Создаём PDF…" : "Поделиться"}</span>
+            {sharePdfLoading ? (
               <LoaderCircle
                 className={`${styles.shareButtonIcon} ${styles.shareButtonLoadingIcon}`}
                 size={16}
@@ -1046,7 +1077,7 @@ function ResultsView({
           <button
             type="button"
             className={`${styles.shareButton} ${styles.restartButton}`}
-            onClick={onRestart}
+            onClick={() => setConfirmRestart(true)}
           >
             <span>Пройти заново</span>
             <RefreshCw className={styles.shareButtonIcon} size={16} aria-hidden="true" />
@@ -1072,12 +1103,39 @@ function ResultsView({
         </div>
       )}
 
-      {shareCard && (
+      {editingFlower && (
+        <ResultActionDialog title={editingFlower.name} description="Как ты относишься к этому цветку?" onClose={() => setEditingFlower(null)}>
+          {([...ratingOptions].reverse()).map((option) => (
+            <button key={option.value} type="button" className={`${styles.editRatingOption} ${styles[option.value]}`}
+              aria-pressed={answers[editingFlower.id] === option.value}
+              onClick={() => { onAnswerChange(editingFlower.id, option.value); setEditingFlower(null); }}>
+              <span aria-hidden="true">{option.icon}</span>{option.label}
+              {answers[editingFlower.id] === option.value && <Check size={18} aria-hidden="true" />}
+            </button>
+          ))}
+          <button type="button" className={`${styles.editRatingOption} ${styles.skipped}`}
+            aria-pressed={answers[editingFlower.id] === "skipped"}
+            onClick={() => { onAnswerChange(editingFlower.id, "skipped"); setEditingFlower(null); }}>
+            Пропустить
+            {answers[editingFlower.id] === "skipped" && <Check size={18} aria-hidden="true" />}
+          </button>
+        </ResultActionDialog>
+      )}
+      {resultPhoto && <FlowerImageModal details={resultPhoto} onClose={closeResultPhoto} />}
+      {confirmRestart && (
+        <ResultActionDialog title="Пройти заново?" description="Все текущие оценки будут удалены. Ты начнёшь с первого цветка." onClose={() => setConfirmRestart(false)}>
+          <button type="button" data-initial-focus className={`${styles.shareButton} ${styles.restartButton}`} onClick={() => setConfirmRestart(false)}>Оставить результаты</button>
+          <button type="button" className={styles.shareButton} onClick={() => { setConfirmRestart(false); onRestart(); }}>Да, пройти заново</button>
+        </ResultActionDialog>
+      )}
+
+      {sharePdf && (
         <ShareResultsModal
-          imageBlob={shareCard.blob}
-          imageUrl={shareCard.url}
+          pdfBlob={sharePdf.blob}
+          pdfUrl={sharePdf.url}
+          imageUrl={sharePdf.imageUrl}
           shareText={shareText}
-          onClose={() => setShareCard(null)}
+          onClose={() => setSharePdf(null)}
           onNotify={showToast}
         />
       )}
@@ -1096,21 +1154,28 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
   const [answers, setAnswers] = useState<SavedAnswers>({});
   const [storageReady, setStorageReady] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [reviewFlowerIds, setReviewFlowerIds] = useState<string[] | null>(null);
   const [pageExit, setPageExit] = useState<PageExit | null>(null);
   const [flowerInfoModal, setFlowerInfoModal] =
     useState<FlowerInfoModalDetails | null>(null);
   const [flowerImageModal, setFlowerImageModal] =
     useState<FlowerImageModalDetails | null>(null);
 
-  const currentFlower = flowers[currentFlowerIndex];
-  const hasNextFlower = currentFlowerIndex < flowers.length - 1;
+  // Keep a fixed review queue while ratings change, so advancing never skips an item.
+  const surveyFlowers = reviewFlowerIds
+    ? reviewFlowerIds.map((id) => flowers.find((flower) => flower.id === id)).filter((flower): flower is Flower => Boolean(flower))
+    : flowers;
+  const skippedCount = flowers.filter((flower) => answers[flower.id] === "skipped").length;
+  const ratedCount = flowers.filter((flower) => answers[flower.id] && answers[flower.id] !== "skipped").length;
+  const currentFlower = surveyFlowers[currentFlowerIndex];
+  const hasNextFlower = currentFlowerIndex < surveyFlowers.length - 1;
   const nextFlowerIndex = hasNextFlower ? currentFlowerIndex + 1 : currentFlowerIndex;
-  const nextFlower = hasNextFlower ? flowers[nextFlowerIndex] : undefined;
+  const nextFlower = hasNextFlower ? surveyFlowers[nextFlowerIndex] : undefined;
   const hasPreviousFlower = currentFlowerIndex > 0;
   const previousFlowerIndex = hasPreviousFlower
     ? currentFlowerIndex - 1
     : currentFlowerIndex;
-  const previousFlower = hasPreviousFlower ? flowers[previousFlowerIndex] : undefined;
+  const previousFlower = hasPreviousFlower ? surveyFlowers[previousFlowerIndex] : undefined;
   const transitionFlower =
     transitionDirection === "backward" ? previousFlower : nextFlower;
   const transitionFlowerIndex =
@@ -1202,7 +1267,18 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
         setSelectedRating(null);
         setIsTransitioning(false);
         setShowResults(true);
+        setReviewFlowerIds(null);
+        setCurrentFlowerIndex(0);
+        selectionLockedRef.current = false;
+      } else if (pageExit === "review") {
+        selectionLockedRef.current = false;
+        setCurrentFlowerIndex(0);
+        setSelectedRating(null);
+        setIsTransitioning(false);
+        setTransitionDirection("forward");
+        setShowResults(false);
       } else {
+        setReviewFlowerIds(null);
         window.localStorage.removeItem(STORAGE_KEY);
         selectionLockedRef.current = false;
         setAnswers({});
@@ -1273,6 +1349,19 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
     }
   };
 
+  const handleAnswerChange = (flowerId: string, answer: Answer) => {
+    setAnswers((current) => ({ ...current, [flowerId]: answer }));
+  };
+
+  const handleReviewSkipped = () => {
+    const ids = flowers.filter((flower) => answers[flower.id] === "skipped").map((flower) => flower.id);
+    if (ids.length && !pageExit) {
+      setReviewFlowerIds(ids);
+      setCurrentFlowerIndex(0);
+      setPageExit("review");
+    }
+  };
+
   const handleRestart = () => {
     if (!pageExit) {
       setPageExit("results");
@@ -1288,10 +1377,10 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
       <main className={styles.viewport}>
         <div
           className={`${styles.screen} ${
-            pageExit === "results" ? styles.resultsPageLeaving : ""
+            (pageExit === "results" || pageExit === "review") ? styles.resultsPageLeaving : ""
           }`}
         >
-          <ResultsView flowers={flowers} answers={answers} onRestart={handleRestart} />
+          <ResultsView flowers={flowers} answers={answers} onRestart={handleRestart} onAnswerChange={handleAnswerChange} onReviewSkipped={handleReviewSkipped} />
         </div>
       </main>
     );
@@ -1306,12 +1395,18 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
       >
         <Progress
           current={progressIndex + 1}
-          total={flowers.length}
+          total={surveyFlowers.length}
           onPrevious={() => handleNavigate("backward")}
           onNext={() => handleNavigate("forward")}
           previousDisabled={!hasPreviousFlower || navigationDisabled}
           nextDisabled={navigationDisabled}
         />
+        {reviewFlowerIds && (
+          <div className={styles.reviewHeader}>
+            <span>Пропущенные цветы</span>
+            <button type="button" disabled={navigationDisabled || Boolean(pageExit)} onClick={() => setPageExit("survey")}>К результатам</button>
+          </div>
+        )}
         <div className={styles.surveyBody}>
           <div className={styles.cardStage} aria-live="polite">
             <FlowerCard
@@ -1365,7 +1460,7 @@ export function FlowerRatingScreen({ flowers }: FlowerRatingScreenProps) {
           />
           {isTransitioning && transitionDirection === "forward" && !nextFlower && (
             <div className={styles.completionLayer} aria-live="polite">
-              <CompletionCard />
+              <CompletionCard rated={ratedCount} skipped={skippedCount} />
             </div>
           )}
         </div>
